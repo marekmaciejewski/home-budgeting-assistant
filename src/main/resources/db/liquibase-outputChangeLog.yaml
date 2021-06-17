@@ -1,0 +1,105 @@
+databaseChangeLog:
+- changeSet:
+    id: 1623918297892-1
+    author: Anka (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: CONSTRAINT_9
+            name: ID
+            type: BIGINT
+        - column:
+            name: AMOUNT
+            type: DECIMAL(19, 2)
+        - column:
+            name: TIMESTAMP
+            type: TIMESTAMP
+        - column:
+            name: OPERATIONS_FROM
+            type: INT
+        - column:
+            name: OPERATIONS_TO
+            type: INT
+        tableName: OPERATION
+- changeSet:
+    id: 1623918297892-2
+    author: Anka (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: CONSTRAINT_5
+            name: ID
+            type: INT
+        - column:
+            name: BALANCE
+            type: DECIMAL(19, 2)
+        - column:
+            constraints:
+              nullable: false
+            name: IS_ACTIVE
+            type: BOOLEAN
+        - column:
+            name: NAME
+            type: VARCHAR(255)
+        tableName: REGISTER
+- changeSet:
+    id: 1623918297892-3
+    author: Anka (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: OPERATIONS_TO
+        indexName: FKFW0SHB0XPK3YGGUHFLJP7TSV_INDEX_9
+        tableName: OPERATION
+- changeSet:
+    id: 1623918297892-4
+    author: Anka (generated)
+    changes:
+    - createIndex:
+        columns:
+        - column:
+            name: OPERATIONS_FROM
+        indexName: FKKEKKDDYCMOCWBPY9BVBHQ5267_INDEX_9
+        tableName: OPERATION
+- changeSet:
+    id: 1623918297892-5
+    author: Anka (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: OPERATIONS_TO
+        baseTableName: OPERATION
+        constraintName: FKFW0SHB0XPK3YGGUHFLJP7TSV
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: RESTRICT
+        onUpdate: RESTRICT
+        referencedColumnNames: ID
+        referencedTableName: REGISTER
+        validate: true
+- changeSet:
+    id: 1623918297892-6
+    author: Anka (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: OPERATIONS_FROM
+        baseTableName: OPERATION
+        constraintName: FKKEKKDDYCMOCWBPY9BVBHQ5267
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: RESTRICT
+        onUpdate: RESTRICT
+        referencedColumnNames: ID
+        referencedTableName: REGISTER
+        validate: true
+
