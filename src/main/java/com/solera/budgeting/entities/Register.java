@@ -13,14 +13,12 @@ import java.util.List;
 public class Register {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
-    private String name;
+    private String id;
     private BigDecimal balance;
     private boolean isActive;
-    @OneToMany(mappedBy = "sourceRegister")
+    @OneToMany(mappedBy = "sourceRegister", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Operation> operationsFrom;
-    @OneToMany(mappedBy = "targetRegister")
+    @OneToMany(mappedBy = "targetRegister", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Operation> operationsTo;
 
 }

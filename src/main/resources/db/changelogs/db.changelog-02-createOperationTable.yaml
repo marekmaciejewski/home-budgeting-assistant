@@ -9,6 +9,7 @@ databaseChangeLog:
               - column:
                   name: ID
                   type: BIGINT
+                  autoIncrement: true
                   constraints:
                     nullable: false
                     primaryKey: true
@@ -25,7 +26,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: OPERATIONS_FROM
-                  type: INT
+                  type: VARCHAR(63)
               - column:
                   name: OPERATIONS_TO
-                  type: INT
+                  type: VARCHAR(63)

@@ -14,6 +14,7 @@ public class Operation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(updatable = false, nullable = false)
     private long id;
     private Instant timestamp;
     private BigDecimal amount;

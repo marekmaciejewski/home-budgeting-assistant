@@ -17,7 +17,7 @@ public class TransferRequest {
     @Schema(description = "The name of the source register", required = true, example = "Wallet")
     private String sourceRegister;
     @NotBlank
-    @Schema(description = "The name of the target register", required = true, example = "Savings")
+    @Schema(description = "The name of the target register", required = true, example = "Food expenses")
     private String targetRegister;
     @Positive
     @Schema(description = "The amount to be transferred", required = true, example = "1500")

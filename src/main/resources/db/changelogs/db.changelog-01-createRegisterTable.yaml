@@ -8,16 +8,11 @@ databaseChangeLog:
             columns:
               - column:
                   name: ID
-                  type: INT
+                  type: VARCHAR(63)
                   constraints:
                     nullable: false
                     primaryKey: true
                     primaryKeyName: REGISTER_PK
-              - column:
-                  name: NAME
-                  type: VARCHAR(63)
-                  constraints:
-                    nullable: false
               - column:
                   name: BALANCE
                   type: DECIMAL(19, 2)
