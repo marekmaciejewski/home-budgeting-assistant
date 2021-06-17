@@ -1,4 +1,4 @@
-package com.solera.budgeting;
+package com.solera.budgeting.entities;
 
 import lombok.Getter;
 import lombok.Setter;
