@@ -56,7 +56,7 @@ class RegisterService {
                 .map(repository::findById)
                 .flatMap(Mono::justOrEmpty)
                 .filter(Register::isActive)
-                .switchIfEmpty(Mono.error(new NotFoundException(registerId + " register not found")));
+                .switchIfEmpty(Mono.error(new NotFoundException(registerId + " register not found or not active")));
     }
 
     Flux<String> getBalances() {
