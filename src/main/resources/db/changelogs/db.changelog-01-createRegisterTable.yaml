@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: 210617-01
+      author: Marek
+      changes:
+        - createTable:
+            tableName: REGISTER
+            columns:
+              - column:
+                  name: ID
+                  type: INT
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: REGISTER_PK
+              - column:
+                  name: NAME
+                  type: VARCHAR(63)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: BALANCE
+                  type: DECIMAL(19, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IS_ACTIVE
+                  type: BOOLEAN
+                  constraints:
+                    nullable: false

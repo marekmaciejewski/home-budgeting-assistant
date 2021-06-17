@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: 210617-02
+      author: Marek
+      changes:
+        - createTable:
+            tableName: OPERATION
+            columns:
+              - column:
+                  name: ID
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: OPERATION_PK
+              - column:
+                  name: TIMESTAMP
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: AMOUNT
+                  type: DECIMAL(19, 2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: OPERATIONS_FROM
+                  type: INT
+              - column:
+                  name: OPERATIONS_TO
+                  type: INT

@@ -1,0 +1,16 @@
+databaseChangeLog:
+  - changeSet:
+      id: 210617-03
+      author: Marek
+      changes:
+        - addForeignKeyConstraint:
+            baseColumnNames: OPERATIONS_FROM
+            baseTableName: OPERATION
+            constraintName: REGISTER_OPERATIONS_FROM_FK
+            deferrable: false
+            initiallyDeferred: false
+            onDelete: RESTRICT
+            onUpdate: RESTRICT
+            referencedColumnNames: ID
+            referencedTableName: REGISTER
+            validate: true
