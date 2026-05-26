@@ -2,27 +2,28 @@ package com.solera.budgeting.entities;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
-import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Entity
+@Table("OPERATION")
 @Getter
 @Setter
 public class Operation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(updatable = false, nullable = false)
-    private long id;
+    @Column("ID")
+    private Long id;
+    @Column("TIMESTAMP")
     private Instant timestamp;
+    @Column("AMOUNT")
     private BigDecimal amount;
-    @ManyToOne
-    @JoinColumn(name = "operationsFrom")
-    private Register sourceRegister;
-    @ManyToOne
-    @JoinColumn(name = "operationsTo")
-    private Register targetRegister;
+    @Column("OPERATIONS_FROM")
+    private String sourceRegisterId;
+    @Column("OPERATIONS_TO")
+    private String targetRegisterId;
 
 }

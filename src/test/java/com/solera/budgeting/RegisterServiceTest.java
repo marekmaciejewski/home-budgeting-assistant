@@ -10,16 +10,12 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.webjars.NotFoundException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -30,31 +26,38 @@ import static org.mockito.Mockito.*;
 class RegisterServiceTest {
 
     @Mock
-    private JpaRepository<Register, String> repository;
+    private RegisterRepository registerRepository;
+    @Mock
+    private OperationRepository operationRepository;
     @Mock
     private RegisterConverter converter;
     @InjectMocks
     private RegisterService service;
 
     @Test
-    void recharge_invokesCorrectUpdater_andInvokesSave(
+    void recharge_invokesCorrectUpdater_andSavesRegisterAndOperation(
             @Mock RechargeRequest request, @Mock BigDecimal amount, @Mock Operation recharge, @Mock Register target) {
         // given
         String registerName = "register name";
         given(request.getAmount()).willReturn(amount);
         given(converter.createOperation(amount)).willReturn(recharge);
         given(request.getRegisterName()).willReturn(registerName);
-        given(repository.findById(registerName)).willReturn(Optional.of(target));
+        given(registerRepository.findById(registerName)).willReturn(Mono.just(target));
         given(target.isActive()).willReturn(true);
-        given(repository.save(target)).willReturn(target);
+        given(registerRepository.save(target)).willReturn(Mono.just(target));
+        given(operationRepository.save(recharge)).willReturn(Mono.just(recharge));
         // when
         Mono<Void> result = service.recharge(request);
         // then
         StepVerifier.create(result)
                 .verifyComplete();
-        then(converter).should().updateTarget(target, recharge);
-        then(repository).should().save(target);
-        verifyNoMoreInteractions(converter, repository);
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(registerName);
+        InOrder order = inOrder(converter, registerRepository, operationRepository);
+        then(converter).should(order).updateTarget(target, recharge);
+        then(registerRepository).should(order).save(target);
+        then(operationRepository).should(order).save(recharge);
+        verifyNoMoreInteractions(converter, registerRepository, operationRepository);
     }
 
     @Test
@@ -65,7 +68,7 @@ class RegisterServiceTest {
         given(request.getAmount()).willReturn(amount);
         given(converter.createOperation(amount)).willReturn(recharge);
         given(request.getRegisterName()).willReturn(registerName);
-        given(repository.findById(registerName)).willReturn(Optional.empty());
+        given(registerRepository.findById(registerName)).willReturn(Mono.empty());
         // when
         Mono<Void> result = service.recharge(request);
         // then
@@ -74,9 +77,12 @@ class RegisterServiceTest {
                         .isExactlyInstanceOf(NotFoundException.class)
                         .hasMessage(registerName + " register not found or not active")
                         .hasNoCause());
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(registerName);
         then(converter).should(never()).updateTarget(target, recharge);
-        then(repository).should(never()).save(target);
-        verifyNoMoreInteractions(converter, repository);
+        then(registerRepository).should(never()).save(target);
+        then(operationRepository).shouldHaveNoInteractions();
+        verifyNoMoreInteractions(converter, registerRepository);
     }
 
     @Test
@@ -87,7 +93,7 @@ class RegisterServiceTest {
         given(request.getAmount()).willReturn(amount);
         given(converter.createOperation(amount)).willReturn(recharge);
         given(request.getRegisterName()).willReturn(registerName);
-        given(repository.findById(registerName)).willReturn(Optional.of(target));
+        given(registerRepository.findById(registerName)).willReturn(Mono.just(target));
         given(target.isActive()).willReturn(false);
         // when
         Mono<Void> result = service.recharge(request);
@@ -97,13 +103,16 @@ class RegisterServiceTest {
                         .isExactlyInstanceOf(NotFoundException.class)
                         .hasMessage(registerName + " register not found or not active")
                         .hasNoCause());
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(registerName);
         then(converter).should(never()).updateTarget(target, recharge);
-        then(repository).should(never()).save(target);
-        verifyNoMoreInteractions(converter, repository);
+        then(registerRepository).should(never()).save(target);
+        then(operationRepository).shouldHaveNoInteractions();
+        verifyNoMoreInteractions(converter, registerRepository);
     }
 
     @Test
-    void transfer_invokesCorrectUpdaters_andInvokesSaveWithCorrectObject(
+    void transfer_invokesCorrectUpdaters_andSavesRegistersAndOperation(
             @Mock TransferRequest request,
             @Mock BigDecimal amount,
             @Mock Operation transfer,
@@ -116,23 +125,28 @@ class RegisterServiceTest {
         given(converter.createOperation(amount)).willReturn(transfer);
         given(request.getSourceRegister()).willReturn(sourceName);
         given(request.getTargetRegister()).willReturn(targetName);
-        given(repository.findById(sourceName)).willReturn(Optional.of(source));
-        given(repository.findById(targetName)).willReturn(Optional.of(target));
+        given(registerRepository.findById(sourceName)).willReturn(Mono.just(source));
+        given(registerRepository.findById(targetName)).willReturn(Mono.just(target));
         given(source.isActive()).willReturn(true);
         given(target.isActive()).willReturn(true);
-        given(repository.save(source)).willReturn(source);
-        given(repository.save(target)).willReturn(target);
+        given(registerRepository.save(source)).willReturn(Mono.just(source));
+        given(registerRepository.save(target)).willReturn(Mono.just(target));
+        given(operationRepository.save(transfer)).willReturn(Mono.just(transfer));
         // when
         Mono<Void> result = service.transfer(request);
         // then
         StepVerifier.create(result)
                 .verifyComplete();
-        InOrder order = inOrder(converter, repository);
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(sourceName);
+        then(registerRepository).should().findById(targetName);
+        InOrder order = inOrder(converter, registerRepository, operationRepository);
         then(converter).should(order).updateSource(source, transfer);
-        then(repository).should(order).save(source);
         then(converter).should(order).updateTarget(target, transfer);
-        then(repository).should(order).save(target);
-        verifyNoMoreInteractions(converter, repository);
+        then(registerRepository).should(order).save(source);
+        then(registerRepository).should(order).save(target);
+        then(operationRepository).should(order).save(transfer);
+        verifyNoMoreInteractions(converter, registerRepository, operationRepository);
     }
 
     @Test
@@ -144,8 +158,7 @@ class RegisterServiceTest {
         given(request.getAmount()).willReturn(amount);
         given(converter.createOperation(amount)).willReturn(transfer);
         given(request.getSourceRegister()).willReturn(sourceName);
-        given(request.getTargetRegister()).willReturn(targetName);
-        given(repository.findById(sourceName)).willReturn(Optional.empty());
+        given(registerRepository.findById(sourceName)).willReturn(Mono.empty());
         // when
         Mono<Void> result = service.transfer(request);
         // then
@@ -154,9 +167,13 @@ class RegisterServiceTest {
                         .isExactlyInstanceOf(NotFoundException.class)
                         .hasMessage(sourceName + " register not found or not active")
                         .hasNoCause());
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(sourceName);
+        then(request).should(never()).getTargetRegister();
         then(converter).should(never()).updateSource(any(Register.class), same(transfer));
-        then(repository).should(never()).save(any(Register.class));
-        verifyNoMoreInteractions(converter, repository);
+        then(registerRepository).should(never()).save(any(Register.class));
+        then(operationRepository).shouldHaveNoInteractions();
+        verifyNoMoreInteractions(converter, registerRepository);
     }
 
     @Test
@@ -168,8 +185,7 @@ class RegisterServiceTest {
         given(request.getAmount()).willReturn(amount);
         given(converter.createOperation(amount)).willReturn(transfer);
         given(request.getSourceRegister()).willReturn(sourceName);
-        given(request.getTargetRegister()).willReturn(targetName);
-        given(repository.findById(sourceName)).willReturn(Optional.of(source));
+        given(registerRepository.findById(sourceName)).willReturn(Mono.just(source));
         given(source.isActive()).willReturn(false);
         // when
         Mono<Void> result = service.transfer(request);
@@ -179,9 +195,13 @@ class RegisterServiceTest {
                         .isExactlyInstanceOf(NotFoundException.class)
                         .hasMessage(sourceName + " register not found or not active")
                         .hasNoCause());
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(sourceName);
+        then(request).should(never()).getTargetRegister();
         then(converter).should(never()).updateSource(any(Register.class), same(transfer));
-        then(repository).should(never()).save(any(Register.class));
-        verifyNoMoreInteractions(converter, repository);
+        then(registerRepository).should(never()).save(any(Register.class));
+        then(operationRepository).shouldHaveNoInteractions();
+        verifyNoMoreInteractions(converter, registerRepository);
     }
 
     @Test
@@ -194,10 +214,9 @@ class RegisterServiceTest {
         given(converter.createOperation(amount)).willReturn(transfer);
         given(request.getSourceRegister()).willReturn(sourceName);
         given(request.getTargetRegister()).willReturn(targetName);
-        given(repository.findById(sourceName)).willReturn(Optional.of(source));
-        given(repository.findById(targetName)).willReturn(Optional.empty());
+        given(registerRepository.findById(sourceName)).willReturn(Mono.just(source));
+        given(registerRepository.findById(targetName)).willReturn(Mono.empty());
         given(source.isActive()).willReturn(true);
-        given(repository.save(source)).willReturn(source);
         // when
         Mono<Void> result = service.transfer(request);
         // then
@@ -206,9 +225,13 @@ class RegisterServiceTest {
                         .isExactlyInstanceOf(NotFoundException.class)
                         .hasMessage(targetName + " register not found or not active")
                         .hasNoCause());
-        then(converter).should().updateSource(source, transfer);
-        then(repository).should().save(source);
-        verifyNoMoreInteractions(converter, repository);
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(sourceName);
+        then(registerRepository).should().findById(targetName);
+        then(converter).should(never()).updateSource(source, transfer);
+        then(registerRepository).should(never()).save(any(Register.class));
+        then(operationRepository).shouldHaveNoInteractions();
+        verifyNoMoreInteractions(converter, registerRepository);
     }
 
     @Test
@@ -225,11 +248,10 @@ class RegisterServiceTest {
         given(converter.createOperation(amount)).willReturn(transfer);
         given(request.getSourceRegister()).willReturn(sourceName);
         given(request.getTargetRegister()).willReturn(targetName);
-        given(repository.findById(sourceName)).willReturn(Optional.of(source));
-        given(repository.findById(targetName)).willReturn(Optional.of(target));
+        given(registerRepository.findById(sourceName)).willReturn(Mono.just(source));
+        given(registerRepository.findById(targetName)).willReturn(Mono.just(target));
         given(source.isActive()).willReturn(true);
         given(target.isActive()).willReturn(false);
-        given(repository.save(source)).willReturn(source);
         // when
         Mono<Void> result = service.transfer(request);
         // then
@@ -238,9 +260,13 @@ class RegisterServiceTest {
                         .isExactlyInstanceOf(NotFoundException.class)
                         .hasMessage(targetName + " register not found or not active")
                         .hasNoCause());
-        then(converter).should().updateSource(source, transfer);
-        then(repository).should().save(source);
-        verifyNoMoreInteractions(converter, repository);
+        then(converter).should().createOperation(amount);
+        then(registerRepository).should().findById(sourceName);
+        then(registerRepository).should().findById(targetName);
+        then(converter).should(never()).updateSource(source, transfer);
+        then(registerRepository).should(never()).save(any(Register.class));
+        then(operationRepository).shouldHaveNoInteractions();
+        verifyNoMoreInteractions(converter, registerRepository);
     }
 
     @Test
@@ -248,8 +274,7 @@ class RegisterServiceTest {
         // given
         String printout1 = "printout 1";
         String printout3 = "printout 3";
-        List<Register> registers = Arrays.asList(register1, register2, register3);
-        given(repository.findAll()).willReturn(registers);
+        given(registerRepository.findAll()).willReturn(Flux.just(register1, register2, register3));
         given(register1.isActive()).willReturn(true);
         given(register2.isActive()).willReturn(false);
         given(register3.isActive()).willReturn(true);
@@ -261,7 +286,10 @@ class RegisterServiceTest {
         StepVerifier.create(result)
                 .expectNext(printout1, printout3)
                 .verifyComplete();
+        then(registerRepository).should().findAll();
+        then(converter).should().getPrintout(register1);
+        then(converter).should().getPrintout(register3);
         then(converter).should(never()).getPrintout(register2);
-        verifyNoMoreInteractions(converter, repository);
+        verifyNoMoreInteractions(converter, registerRepository, operationRepository);
     }
 }

@@ -5,62 +5,61 @@ import com.solera.budgeting.entities.Register;
 import com.solera.budgeting.model.RechargeRequest;
 import com.solera.budgeting.model.TransferRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.webjars.NotFoundException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.function.Consumer;
-
 @Service
 @RequiredArgsConstructor
 class RegisterService {
 
-    private final JpaRepository<Register, String> repository;
+    private final RegisterRepository registerRepository;
+    private final OperationRepository operationRepository;
     private final RegisterConverter converter;
 
     @Transactional
     public Mono<Void> recharge(RechargeRequest request) {
         return Mono.just(request.getAmount())
                 .map(converter::createOperation)
-                .flatMap(recharge -> applyTargetOperation(request.getRegisterName(), recharge));
+                .flatMap(recharge -> getRegister(request.getRegisterName())
+                        .flatMap(target -> saveRecharge(target, recharge)));
     }
 
     @Transactional
     public Mono<Void> transfer(TransferRequest request) {
         return Mono.just(request.getAmount())
                 .map(converter::createOperation)
-                .flatMap(transfer -> applySourceOperation(request.getSourceRegister(), transfer)
-                        .then(applyTargetOperation(request.getTargetRegister(), transfer)));
+                .flatMap(transfer -> getRegister(request.getSourceRegister())
+                        .flatMap(source -> getRegister(request.getTargetRegister())
+                                .flatMap(target -> saveTransfer(source, target, transfer))));
     }
 
-    private Mono<Void> applySourceOperation(String registerId, Operation operation) {
-        return applyOperation(registerId, source -> converter.updateSource(source, operation));
+    private Mono<Void> saveRecharge(Register target, Operation recharge) {
+        converter.updateTarget(target, recharge);
+        return registerRepository.save(target)
+                .then(operationRepository.save(recharge))
+                .then();
     }
 
-    private Mono<Void> applyTargetOperation(String registerId, Operation operation) {
-        return applyOperation(registerId, target -> converter.updateTarget(target, operation));
-    }
-
-    private Mono<Void> applyOperation(String registerId, Consumer<Register> updater) {
-        return getRegister(registerId)
-                .doOnNext(updater)
-                .map(repository::save)
+    private Mono<Void> saveTransfer(Register source, Register target, Operation transfer) {
+        converter.updateSource(source, transfer);
+        converter.updateTarget(target, transfer);
+        return registerRepository.save(source)
+                .then(registerRepository.save(target))
+                .then(operationRepository.save(transfer))
                 .then();
     }
 
     private Mono<Register> getRegister(String registerId) {
-        return Mono.just(registerId)
-                .map(repository::findById)
-                .flatMap(Mono::justOrEmpty)
+        return registerRepository.findById(registerId)
                 .filter(Register::isActive)
                 .switchIfEmpty(Mono.error(new NotFoundException(registerId + " register not found or not active")));
     }
 
     Flux<String> getBalances() {
-        return Flux.fromIterable(repository.findAll())
+        return registerRepository.findAll()
                 .filter(Register::isActive)
                 .map(converter::getPrintout);
     }

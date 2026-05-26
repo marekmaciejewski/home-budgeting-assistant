@@ -23,14 +23,13 @@ class RegisterConverter {
     }
 
     void updateSource(Register source, Operation operation) {
-        operation.setSourceRegister(source);
+        operation.setSourceRegisterId(source.getId());
         source.setBalance(source.getBalance().subtract(operation.getAmount()));
     }
 
     void updateTarget(Register target, Operation operation) {
-        operation.setTargetRegister(target);
+        operation.setTargetRegisterId(target.getId());
         target.setBalance(target.getBalance().add(operation.getAmount()));
-        target.getOperationsTo().add(operation);
     }
 
     String getPrintout(Register register) {

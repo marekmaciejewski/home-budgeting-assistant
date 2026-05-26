@@ -2,14 +2,12 @@ package com.solera.budgeting;
 
 import com.solera.budgeting.entities.Operation;
 import com.solera.budgeting.entities.Register;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
@@ -39,14 +37,14 @@ class RegisterConverterTest {
         BigDecimal balance = BigDecimal.valueOf(3000);
         Register source = new Register();
         Operation operation = new Operation();
+        source.setId("source");
         source.setBalance(balance);
         operation.setAmount(amount);
         // when
         converter.updateSource(source, operation);
         // then
-        assertThat(source)
-                .isSameAs(operation.getSourceRegister())
-                .returns(BigDecimal.valueOf(2000), from(Register::getBalance));
+        assertThat(operation).returns("source", from(Operation::getSourceRegisterId));
+        assertThat(source).returns(BigDecimal.valueOf(2000), from(Register::getBalance));
     }
 
     @Test
@@ -56,17 +54,14 @@ class RegisterConverterTest {
         BigDecimal balance = BigDecimal.valueOf(2000);
         Register target = new Register();
         Operation operation = new Operation();
+        target.setId("target");
         target.setBalance(balance);
-        target.setOperationsTo(new ArrayList<>());
         operation.setAmount(amount);
         // when
         converter.updateTarget(target, operation);
         // then
-        assertThat(target)
-                .isSameAs(operation.getTargetRegister())
-                .returns(BigDecimal.valueOf(3000), from(Register::getBalance))
-                .extracting(Register::getOperationsTo, InstanceOfAssertFactories.list(Operation.class))
-                .containsExactly(operation);
+        assertThat(operation).returns("target", from(Operation::getTargetRegisterId));
+        assertThat(target).returns(BigDecimal.valueOf(3000), from(Register::getBalance));
     }
 
     @Test
