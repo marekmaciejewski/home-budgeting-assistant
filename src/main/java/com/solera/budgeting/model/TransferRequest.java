@@ -4,9 +4,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Positive;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
+
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
 
 @Getter
 @Setter
@@ -14,13 +16,13 @@ import java.math.BigDecimal;
 public class TransferRequest {
 
     @NotBlank
-    @Schema(description = "The name of the source register", required = true, example = "Wallet")
+    @Schema(description = "The name of the source register", requiredMode = REQUIRED, example = "Wallet")
     private String sourceRegister;
     @NotBlank
-    @Schema(description = "The name of the target register", required = true, example = "Food expenses")
+    @Schema(description = "The name of the target register", requiredMode = REQUIRED, example = "Food expenses")
     private String targetRegister;
     @Positive
-    @Schema(description = "The amount to be transferred", required = true, example = "1500")
+    @Schema(description = "The amount to be transferred", requiredMode = REQUIRED, example = "1500")
     private BigDecimal amount;
 
 }

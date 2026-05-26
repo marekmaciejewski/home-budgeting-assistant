@@ -1,31 +1,25 @@
 package com.solera.budgeting;
 
-import io.restassured.RestAssured;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.web.server.LocalServerPort;
+import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import java.util.stream.Stream;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureWebTestClient
 class RegisterDbIT {
 
-    @LocalServerPort
-    private int port;
-
-    @BeforeEach
-    void setUp() {
-        RestAssured.port = port;
-    }
+    @Autowired
+    private WebTestClient testClient;
 
     @TestFactory
     Stream<DynamicNode> demoScenario() {
@@ -82,25 +76,21 @@ class RegisterDbIT {
     }
 
     private void executeOperation(String body, String path) {
-        given()
-                .header("Content-Type", MediaType.APPLICATION_JSON_VALUE)
-                .body(body)
-                .when()
-                .post(path)
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .body(Matchers.emptyString());
+        testClient.post().uri(path)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody().isEmpty();
     }
 
     private void checkBalances(String[] balances) {
-        String actualPrintout = given()
-                .when()
-                .get("/registers")
-                .then()
-                .assertThat()
-                .statusCode(200)
-                .extract().body().asString();
+        String actualPrintout = testClient.get().uri("/registers")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .returnResult()
+                .getResponseBody();
         assertThat(actualPrintout).contains(balances);
     }
 }

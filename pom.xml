@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.18</version>
+        <version>4.0.6</version>
     </parent>
     <groupId>com.solera</groupId>
     <artifactId>home-budgeting-assistant</artifactId>
@@ -14,8 +14,7 @@
     <description>Demo project</description>
 
     <properties>
-        <!-- Keep Java 8 bytecode while still on the Spring Boot 2.x line. -->
-        <java.version>1.8</java.version>
+        <java.version>21</java.version>
         <lombok.version>1.18.46</lombok.version>
     </properties>
 
@@ -33,18 +32,13 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core</artifactId>
-        </dependency>
-        <!-- Liquibase is JDBC-based; application repositories use R2DBC. -->
-        <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
+            <artifactId>spring-boot-starter-liquibase</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-webflux-ui</artifactId>
-            <version>1.6.15</version>
+            <artifactId>springdoc-openapi-starter-webflux-ui</artifactId>
+            <version>3.0.3</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -63,17 +57,12 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
+            <artifactId>spring-boot-starter-webflux-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>rest-assured</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

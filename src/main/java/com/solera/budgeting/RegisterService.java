@@ -7,7 +7,6 @@ import com.solera.budgeting.model.TransferRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.webjars.NotFoundException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -55,7 +54,7 @@ class RegisterService {
     private Mono<Register> getRegister(String registerId) {
         return registerRepository.findById(registerId)
                 .filter(Register::isActive)
-                .switchIfEmpty(Mono.error(new NotFoundException(registerId + " register not found or not active")));
+                .switchIfEmpty(Mono.error(new RegisterNotFoundException(registerId + " register not found or not active")));
     }
 
     Flux<String> getBalances() {

@@ -10,7 +10,6 @@ import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.webjars.NotFoundException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -74,7 +73,7 @@ class RegisterServiceTest {
         // then
         StepVerifier.create(result)
                 .verifyErrorSatisfies(thrown -> assertThat(thrown)
-                        .isExactlyInstanceOf(NotFoundException.class)
+                        .isExactlyInstanceOf(RegisterNotFoundException.class)
                         .hasMessage(registerName + " register not found or not active")
                         .hasNoCause());
         then(converter).should().createOperation(amount);
@@ -100,7 +99,7 @@ class RegisterServiceTest {
         // then
         StepVerifier.create(result)
                 .verifyErrorSatisfies(thrown -> assertThat(thrown)
-                        .isExactlyInstanceOf(NotFoundException.class)
+                        .isExactlyInstanceOf(RegisterNotFoundException.class)
                         .hasMessage(registerName + " register not found or not active")
                         .hasNoCause());
         then(converter).should().createOperation(amount);
@@ -164,7 +163,7 @@ class RegisterServiceTest {
         // then
         StepVerifier.create(result)
                 .verifyErrorSatisfies(thrown -> assertThat(thrown)
-                        .isExactlyInstanceOf(NotFoundException.class)
+                        .isExactlyInstanceOf(RegisterNotFoundException.class)
                         .hasMessage(sourceName + " register not found or not active")
                         .hasNoCause());
         then(converter).should().createOperation(amount);
@@ -192,7 +191,7 @@ class RegisterServiceTest {
         // then
         StepVerifier.create(result)
                 .verifyErrorSatisfies(thrown -> assertThat(thrown)
-                        .isExactlyInstanceOf(NotFoundException.class)
+                        .isExactlyInstanceOf(RegisterNotFoundException.class)
                         .hasMessage(sourceName + " register not found or not active")
                         .hasNoCause());
         then(converter).should().createOperation(amount);
@@ -222,7 +221,7 @@ class RegisterServiceTest {
         // then
         StepVerifier.create(result)
                 .verifyErrorSatisfies(thrown -> assertThat(thrown)
-                        .isExactlyInstanceOf(NotFoundException.class)
+                        .isExactlyInstanceOf(RegisterNotFoundException.class)
                         .hasMessage(targetName + " register not found or not active")
                         .hasNoCause());
         then(converter).should().createOperation(amount);
@@ -257,7 +256,7 @@ class RegisterServiceTest {
         // then
         StepVerifier.create(result)
                 .verifyErrorSatisfies(thrown -> assertThat(thrown)
-                        .isExactlyInstanceOf(NotFoundException.class)
+                        .isExactlyInstanceOf(RegisterNotFoundException.class)
                         .hasMessage(targetName + " register not found or not active")
                         .hasNoCause());
         then(converter).should().createOperation(amount);
