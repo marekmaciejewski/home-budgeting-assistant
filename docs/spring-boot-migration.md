@@ -114,8 +114,15 @@ Additional checks performed:
 
 ## Possible Follow-Up Work
 
-- Decide whether Swagger UI and API docs should be profile-gated.
-- Consider replacing register names in URLs with stable technical IDs or slugs if this stops being a prototype API.
+- [ ] Profile-gate Swagger UI and API docs so `/v3/api-docs` and `/swagger-ui.html` are enabled locally but disabled
+  in production-like profiles.
+- [ ] Replace brittle JSON substring assertions in `RegisterDbIT` with JSONPath assertions.
+- [ ] Standardize API error responses, preferably using `ProblemDetail`, so validation and domain errors share one
+  response shape.
+- [ ] Fix mojibake in the original assignment section of `README.md`.
+- [ ] Decide whether register path IDs should remain human-readable names or move to stable technical IDs/slugs.
+- [ ] Add money validation rules for amount precision and scale, for example rejecting values with more than two
+  decimal places.
 
 ## Completed Follow-Up Hardening
 
