@@ -132,6 +132,9 @@ Additional checks performed:
   - `GET /operations/{operationId}`
 - Removed old `POST /registers/recharge` and `POST /registers/transfer` endpoints after replacing them with the
   resource-oriented API.
+- Reorganized Java packages around API, application, domain, persistence, and configuration responsibilities.
+- Renamed the Java package root from `com.solera.budgeting` to `pl.mm.homebudget` and Maven group from `com.solera` to `pl.mm`.
+- Renamed the Spring Boot entry point to `HomeBudgetApplication`.
 
 ## Manual Liquibase Plugin Usage
 

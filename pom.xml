@@ -7,7 +7,7 @@
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>4.0.6</version>
     </parent>
-    <groupId>com.solera</groupId>
+    <groupId>pl.mm</groupId>
     <artifactId>home-budgeting-assistant</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>home-budgeting-assistant</name>

@@ -1,9 +1,0 @@
-package com.solera.budgeting;
-
-import com.solera.budgeting.entities.Register;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface RegisterRepository extends ReactiveCrudRepository<Register, String> {
-}
