@@ -24,4 +24,17 @@ class GlobalExceptionHandlerTest {
                 .returns(HttpStatus.NOT_FOUND, from(ResponseEntity::getStatusCode))
                 .returns(message, from(HttpEntity::getBody));
     }
+
+    @Test
+    void handle_returnsResponseEntityWithBadRequestStatus_andExceptionMessageInBody() {
+        // given
+        String message = "sample message";
+        InvalidTransferException e = new InvalidTransferException(message);
+        // when
+        ResponseEntity<String> responseEntity = exceptionHandler.handle(e);
+        // then
+        assertThat(responseEntity)
+                .returns(HttpStatus.BAD_REQUEST, from(ResponseEntity::getStatusCode))
+                .returns(message, from(HttpEntity::getBody));
+    }
 }

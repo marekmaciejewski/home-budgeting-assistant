@@ -154,9 +154,10 @@ class RegisterServiceTest {
         // given
         String sourceName = "source name";
         String targetName = "target name";
+        given(request.getSourceRegister()).willReturn(sourceName);
+        given(request.getTargetRegister()).willReturn(targetName);
         given(request.getAmount()).willReturn(amount);
         given(converter.createOperation(amount)).willReturn(transfer);
-        given(request.getSourceRegister()).willReturn(sourceName);
         given(registerRepository.findById(sourceName)).willReturn(Mono.empty());
         // when
         Mono<Void> result = service.transfer(request);
@@ -168,7 +169,6 @@ class RegisterServiceTest {
                         .hasNoCause());
         then(converter).should().createOperation(amount);
         then(registerRepository).should().findById(sourceName);
-        then(request).should(never()).getTargetRegister();
         then(converter).should(never()).updateSource(any(Register.class), same(transfer));
         then(registerRepository).should(never()).save(any(Register.class));
         then(operationRepository).shouldHaveNoInteractions();
@@ -181,9 +181,10 @@ class RegisterServiceTest {
         // given
         String sourceName = "source name";
         String targetName = "target name";
+        given(request.getSourceRegister()).willReturn(sourceName);
+        given(request.getTargetRegister()).willReturn(targetName);
         given(request.getAmount()).willReturn(amount);
         given(converter.createOperation(amount)).willReturn(transfer);
-        given(request.getSourceRegister()).willReturn(sourceName);
         given(registerRepository.findById(sourceName)).willReturn(Mono.just(source));
         given(source.isActive()).willReturn(false);
         // when
@@ -196,11 +197,31 @@ class RegisterServiceTest {
                         .hasNoCause());
         then(converter).should().createOperation(amount);
         then(registerRepository).should().findById(sourceName);
-        then(request).should(never()).getTargetRegister();
         then(converter).should(never()).updateSource(any(Register.class), same(transfer));
         then(registerRepository).should(never()).save(any(Register.class));
         then(operationRepository).shouldHaveNoInteractions();
         verifyNoMoreInteractions(converter, registerRepository);
+    }
+
+    @Test
+    void transfer_returnsError_dueToSameSourceAndTargetRegister(@Mock TransferRequest request) {
+        // given
+        String registerName = "register name";
+        given(request.getSourceRegister()).willReturn(registerName);
+        given(request.getTargetRegister()).willReturn(registerName);
+        // when
+        Mono<Void> result = service.transfer(request);
+        // then
+        StepVerifier.create(result)
+                .verifyErrorSatisfies(thrown -> assertThat(thrown)
+                        .isExactlyInstanceOf(InvalidTransferException.class)
+                        .hasMessage("source and target register must be different")
+                        .hasNoCause());
+        then(request).should().getSourceRegister();
+        then(request).should().getTargetRegister();
+        then(converter).shouldHaveNoInteractions();
+        then(registerRepository).shouldHaveNoInteractions();
+        then(operationRepository).shouldHaveNoInteractions();
     }
 
     @Test

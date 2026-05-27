@@ -19,6 +19,7 @@ class RegisterControllerIT {
     @ValueSource(strings = {
             "{\"registerName\":null,\"amount\":2500}",
             "{\"registerName\":\"\",\"amount\":2500}",
+            "{\"registerName\":\"Wallet\",\"amount\":null}",
             "{\"registerName\":\"Wallet\",\"amount\":0}",
             "{\"registerName\":\"Wallet\",\"amount\":-2500}"
     })
@@ -42,6 +43,7 @@ class RegisterControllerIT {
             "{\"sourceRegister\":\"\",\"targetRegister\":\"Food expenses\",\"amount\":1500}",
             "{\"sourceRegister\":\"Wallet\",\"targetRegister\":null,\"amount\":1500}",
             "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"\",\"amount\":1500}",
+            "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"Food expenses\",\"amount\":null}",
             "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"Food expenses\",\"amount\":0}",
             "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"Food expenses\",\"amount\":-1500}"
     })

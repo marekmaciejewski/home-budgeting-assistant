@@ -120,3 +120,13 @@ Additional checks performed:
 - Configure explicit annotation processor paths for Lombok.
 - Decide whether Swagger UI and API docs should be profile-gated.
 - Add query methods for operation history if the UI/API needs register-to-operation navigation.
+
+## Completed Follow-Up Hardening
+
+- Added `@NotNull` next to `@Positive` on request amount fields, with validation tests for `null` amounts.
+- Same-register transfers now fail with `400 Bad Request`, with service and integration coverage.
+
+## Manual Liquibase Plugin Usage
+
+`src/main/resources/db/liquibase-plugin.properties` is intentionally kept for manual Liquibase Maven plugin operations
+against a chosen database file. It is separate from the application runtime configuration in `application.yml`.

@@ -10,6 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 class RegisterService {
@@ -28,10 +30,15 @@ class RegisterService {
 
     @Transactional
     public Mono<Void> transfer(TransferRequest request) {
+        String sourceRegister = request.getSourceRegister();
+        String targetRegister = request.getTargetRegister();
+        if (Objects.equals(sourceRegister, targetRegister)) {
+            return Mono.error(new InvalidTransferException("source and target register must be different"));
+        }
         return Mono.just(request.getAmount())
                 .map(converter::createOperation)
-                .flatMap(transfer -> getRegister(request.getSourceRegister())
-                        .flatMap(source -> getRegister(request.getTargetRegister())
+                .flatMap(transfer -> getRegister(sourceRegister)
+                        .flatMap(source -> getRegister(targetRegister)
                                 .flatMap(target -> saveTransfer(source, target, transfer))));
     }
 

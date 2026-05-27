@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
 
@@ -21,6 +22,7 @@ public class TransferRequest {
     @NotBlank
     @Schema(description = "The name of the target register", requiredMode = REQUIRED, example = "Food expenses")
     private String targetRegister;
+    @NotNull
     @Positive
     @Schema(description = "The amount to be transferred", requiredMode = REQUIRED, example = "1500")
     private BigDecimal amount;

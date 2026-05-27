@@ -2,6 +2,7 @@ package com.solera.budgeting;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
@@ -51,5 +52,21 @@ class RegisterServiceIT {
                 .returnResult()
                 .getResponseBody();
         assertThat(actualMessage).endsWith(" register not found or not active");
+    }
+
+    @Test
+    void transfer_returnsBadRequest_whenSourceAndTargetRegisterAreTheSame() {
+        String body = "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"Wallet\",\"amount\":1500}";
+
+        String actualMessage = testClient.post().uri("/registers/transfer")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(actualMessage).isEqualTo("source and target register must be different");
     }
 }
