@@ -98,8 +98,8 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 Current result:
 
 - Build: success.
-- Unit tests: 18 passed.
-- Integration tests: 25 passed.
+- Unit tests: 24 passed.
+- Integration tests: 26 passed.
 
 Additional checks performed:
 
@@ -110,21 +110,28 @@ Additional checks performed:
 
 ## Remaining Warnings
 
-- Mockito logs a dynamic Java agent warning on JDK 21. The build passes, but future JDKs may require configuring Mockito as an explicit Java agent.
-- Javac logs that annotation processing is enabled because processors are found on the classpath. This is not currently fatal.
 - Springdoc logs that `/v3/api-docs` and `/swagger-ui.html` are enabled by default. This is expected unless those endpoints should be disabled in a production profile.
 
 ## Possible Follow-Up Work
 
-- Configure Mockito as a Java agent to remove the future-JDK warning.
-- Configure explicit annotation processor paths for Lombok.
 - Decide whether Swagger UI and API docs should be profile-gated.
-- Add query methods for operation history if the UI/API needs register-to-operation navigation.
+- Consider replacing register names in URLs with stable technical IDs or slugs if this stops being a prototype API.
 
 ## Completed Follow-Up Hardening
 
 - Added `@NotNull` next to `@Positive` on request amount fields, with validation tests for `null` amounts.
 - Same-register transfers now fail with `400 Bad Request`, with service and integration coverage.
+- Configured Mockito as an explicit test JVM agent and disabled test JVM class sharing to remove future-JDK agent warnings.
+- Configured Lombok as an explicit annotation processor to remove javac's implicit annotation-processing warning.
+- Added a resource-oriented JSON API:
+  - `GET /registers`
+  - `GET /registers/{registerId}`
+  - `POST /registers/{registerId}/recharges`
+  - `POST /transfers`
+  - `GET /operations`
+  - `GET /operations/{operationId}`
+- Removed old `POST /registers/recharge` and `POST /registers/transfer` endpoints after replacing them with the
+  resource-oriented API.
 
 ## Manual Liquibase Plugin Usage
 

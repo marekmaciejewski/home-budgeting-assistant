@@ -2,6 +2,8 @@ package com.solera.budgeting;
 
 import com.solera.budgeting.entities.Operation;
 import com.solera.budgeting.entities.Register;
+import com.solera.budgeting.model.OperationResponse;
+import com.solera.budgeting.model.RegisterResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +34,16 @@ class RegisterConverter {
         target.setBalance(target.getBalance().add(operation.getAmount()));
     }
 
-    String getPrintout(Register register) {
-        return String.format("%s: %s", register.getId(), register.getBalance());
+    RegisterResponse toResponse(Register register) {
+        return new RegisterResponse(register.getId(), register.getBalance());
+    }
+
+    OperationResponse toResponse(Operation operation) {
+        return new OperationResponse(
+                operation.getId(),
+                operation.getTimestamp(),
+                operation.getAmount(),
+                operation.getSourceRegisterId(),
+                operation.getTargetRegisterId());
     }
 }

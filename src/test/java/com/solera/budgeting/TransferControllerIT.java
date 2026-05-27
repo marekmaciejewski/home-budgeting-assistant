@@ -9,28 +9,32 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 @MockitoBean(types = RegisterService.class)
-@WebFluxTest(RegisterController.class)
-class RegisterControllerIT {
+@WebFluxTest(TransferController.class)
+class TransferControllerIT {
 
     @Autowired
     private WebTestClient testClient;
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{\"amount\":null}",
-            "{\"amount\":0}",
-            "{\"amount\":-2500}"
+            "{\"sourceRegisterId\":null,\"targetRegisterId\":\"Food expenses\",\"amount\":1500}",
+            "{\"sourceRegisterId\":\"\",\"targetRegisterId\":\"Food expenses\",\"amount\":1500}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":null,\"amount\":1500}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"\",\"amount\":1500}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":null}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":0}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":-1500}"
     })
-    void createRecharge_returnsBadRequest(String payload) {
+    void createTransfer_returnsBadRequest(String payload) {
         testClient
-                .post().uri("/registers/Wallet/recharges")
+                .post().uri("/transfers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(payload)
                 .exchange()
                 .expectStatus().isBadRequest()
                 .expectBody()
                 .jsonPath("$.timestamp").exists()
-                .jsonPath("$.path").isEqualTo("/registers/Wallet/recharges")
+                .jsonPath("$.path").isEqualTo("/transfers")
                 .jsonPath("$.status").isEqualTo(400)
                 .jsonPath("$.error").isEqualTo("Bad Request");
     }

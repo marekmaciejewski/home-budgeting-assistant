@@ -26,6 +26,19 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handle_returnsResponseEntityWithNotFoundStatus_andOperationExceptionMessageInBody() {
+        // given
+        String message = "sample message";
+        OperationNotFoundException e = new OperationNotFoundException(message);
+        // when
+        ResponseEntity<String> responseEntity = exceptionHandler.handle(e);
+        // then
+        assertThat(responseEntity)
+                .returns(HttpStatus.NOT_FOUND, from(ResponseEntity::getStatusCode))
+                .returns(message, from(HttpEntity::getBody));
+    }
+
+    @Test
     void handle_returnsResponseEntityWithBadRequestStatus_andExceptionMessageInBody() {
         // given
         String message = "sample message";

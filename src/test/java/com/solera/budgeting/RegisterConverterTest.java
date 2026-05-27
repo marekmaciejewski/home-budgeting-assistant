@@ -2,6 +2,8 @@ package com.solera.budgeting;
 
 import com.solera.budgeting.entities.Operation;
 import com.solera.budgeting.entities.Register;
+import com.solera.budgeting.model.OperationResponse;
+import com.solera.budgeting.model.RegisterResponse;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -65,15 +67,36 @@ class RegisterConverterTest {
     }
 
     @Test
-    void getPrintout_returnsFormattedStringRepresentationOfRegister() {
+    void toResponse_returnsRegisterResponse() {
         // given
         Register register = new Register();
         register.setId("Test id");
         register.setBalance(BigDecimal.TEN);
-        String expectedPrintout = "Test id: 10";
         // when
-        String actualPrintout = converter.getPrintout(register);
+        RegisterResponse response = converter.toResponse(register);
         // then
-        assertThat(actualPrintout).isEqualTo(expectedPrintout);
+        assertThat(response)
+                .returns("Test id", from(RegisterResponse::id))
+                .returns(BigDecimal.TEN, from(RegisterResponse::balance));
+    }
+
+    @Test
+    void toResponse_returnsOperationResponse() {
+        // given
+        Operation operation = new Operation();
+        operation.setId(1L);
+        operation.setTimestamp(clock.instant());
+        operation.setAmount(BigDecimal.TEN);
+        operation.setSourceRegisterId("source");
+        operation.setTargetRegisterId("target");
+        // when
+        OperationResponse response = converter.toResponse(operation);
+        // then
+        assertThat(response)
+                .returns(1L, from(OperationResponse::id))
+                .returns(clock.instant(), from(OperationResponse::timestamp))
+                .returns(BigDecimal.TEN, from(OperationResponse::amount))
+                .returns("source", from(OperationResponse::sourceRegisterId))
+                .returns("target", from(OperationResponse::targetRegisterId));
     }
 }

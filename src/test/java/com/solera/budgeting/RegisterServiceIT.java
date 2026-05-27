@@ -20,13 +20,13 @@ class RegisterServiceIT {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{\"registerName\":\"test\",\"amount\":2500}",
-            "{\"registerName\":\"Idle\",\"amount\":2500}"
+            "test",
+            "Idle"
     })
-    void recharge_returnsNotFound(String body) {
-        String actualMessage = testClient.post().uri("/registers/recharge")
+    void recharge_returnsNotFound(String registerId) {
+        String actualMessage = testClient.post().uri("/registers/" + registerId + "/recharges")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(body)
+                .bodyValue("{\"amount\":2500}")
                 .exchange()
                 .expectStatus().isNotFound()
                 .expectBody(String.class)
@@ -37,13 +37,13 @@ class RegisterServiceIT {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "{\"sourceRegister\":\"test\",\"targetRegister\":\"Food expenses\",\"amount\":1500}",
-            "{\"sourceRegister\":\"Idle\",\"targetRegister\":\"Food expenses\",\"amount\":1500}",
-            "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"test\",\"amount\":1500}",
-            "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"Idle\",\"amount\":1500}"
+            "{\"sourceRegisterId\":\"test\",\"targetRegisterId\":\"Food expenses\",\"amount\":1500}",
+            "{\"sourceRegisterId\":\"Idle\",\"targetRegisterId\":\"Food expenses\",\"amount\":1500}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"test\",\"amount\":1500}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Idle\",\"amount\":1500}"
     })
     void transfer_returnsNotFound(String body) {
-        String actualMessage = testClient.post().uri("/registers/transfer")
+        String actualMessage = testClient.post().uri("/transfers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .exchange()
@@ -56,9 +56,9 @@ class RegisterServiceIT {
 
     @Test
     void transfer_returnsBadRequest_whenSourceAndTargetRegisterAreTheSame() {
-        String body = "{\"sourceRegister\":\"Wallet\",\"targetRegister\":\"Wallet\",\"amount\":1500}";
+        String body = "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Wallet\",\"amount\":1500}";
 
-        String actualMessage = testClient.post().uri("/registers/transfer")
+        String actualMessage = testClient.post().uri("/transfers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .exchange()

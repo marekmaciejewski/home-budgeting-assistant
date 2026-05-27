@@ -33,13 +33,18 @@ To start from beginning simply stop the app and delete DB file in the provided e
 
 ## Interact
 
-The app exposes three endpoints on the default ip address:
+The app exposes the following primary API on the default host:
 
-| method | url                   | description                |
-|--------|-----------------------|----------------------------|
-| POST   | `/registers/recharge` | recharge register          |
-| POST   | `/registers/transfer` | transfer between registers |
-| GET    | `/registers`          | balances printout          |
+| method | url                                  | description                         |
+|--------|--------------------------------------|-------------------------------------|
+| GET    | `/registers`                         | get all active registers            |
+| GET    | `/registers/{registerId}`            | get one active register             |
+| POST   | `/registers/{registerId}/recharges`  | recharge a register                 |
+| POST   | `/transfers`                         | transfer between registers          |
+| GET    | `/operations`                        | get all balance-changing operations |
+| GET    | `/operations/{operationId}`          | get one balance-changing operation  |
+
+Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
 The details of the input/output model are available on the swagger ui url:
 `localhost:8080/swagger-ui.html`
@@ -47,23 +52,37 @@ This is also the easiest way to interact with the app.
 
 ## Sample requests
 
-### /recharge
+### POST /registers/Wallet/recharges
 
 ```json
 {
-  "registerName": "Wallet",
   "amount": 2500
 }
 ```
 
-### /transfer
+### POST /transfers
 
 ```json
 {
-  "sourceRegister": "Wallet",
-  "targetRegister": "Food expenses",
+  "sourceRegisterId": "Wallet",
+  "targetRegisterId": "Food expenses",
   "amount": 1500
 }
+```
+
+### GET /registers
+
+```json
+[
+  {
+    "id": "Wallet",
+    "balance": 1000.00
+  },
+  {
+    "id": "Savings",
+    "balance": 5000.00
+  }
+]
 ```
 
 ## Tests

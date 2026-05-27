@@ -1,17 +1,20 @@
 package com.solera.budgeting;
 
-import com.solera.budgeting.model.RechargeRequest;
-import com.solera.budgeting.model.TransferRequest;
+import com.solera.budgeting.model.OperationResponse;
+import com.solera.budgeting.model.RechargeCommand;
+import com.solera.budgeting.model.RegisterResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import jakarta.validation.Valid;
+import java.net.URI;
 
 @Tag(name = "registers")
 @RestController
@@ -21,28 +24,35 @@ public class RegisterController {
 
     private final RegisterService service;
 
+    @Operation(summary = "Get all active registers.")
+    @ApiResponse(responseCode = "200", description = "Success")
+    @GetMapping
+    public Flux<RegisterResponse> getRegisters() {
+        return service.getRegisters();
+    }
+
+    @Operation(summary = "Get an active register by id.")
+    @ApiResponse(responseCode = "200", description = "Success")
+    @ApiResponse(responseCode = "404", description = "Resource Not Found")
+    @GetMapping("/{registerId}")
+    public Mono<RegisterResponse> getRegister(@PathVariable String registerId) {
+        return service.getRegister(registerId);
+    }
+
     @Operation(summary = "Recharge a particular register with provided amount.")
-    @ApiResponse(responseCode = "200", description = "Success")
+    @ApiResponse(responseCode = "201", description = "Created")
     @ApiResponse(responseCode = "400", description = "Bad Request")
     @ApiResponse(responseCode = "404", description = "Resource Not Found")
-    @PostMapping("/recharge")
-    public Mono<Void> recharge(@Valid @RequestBody RechargeRequest request) {
-        return service.recharge(request);
+    @PostMapping(path = "/{registerId}/recharges", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<ResponseEntity<OperationResponse>> createRecharge(
+            @PathVariable String registerId,
+            @Valid @RequestBody RechargeCommand request) {
+        return service.recharge(registerId, request.amount())
+                .map(RegisterController::createdOperation);
     }
 
-    @Operation(summary = "Transfer a provided amount from source to target register.")
-    @ApiResponse(responseCode = "200", description = "Success")
-    @ApiResponse(responseCode = "400", description = "Bad Request")
-    @ApiResponse(responseCode = "404", description = "Resource Not Found")
-    @PostMapping("/transfer")
-    public Mono<Void> transfer(@Valid @RequestBody TransferRequest request) {
-        return service.transfer(request);
-    }
-
-    @Operation(summary = "Print the list of all registers accompanied by their balance.")
-    @ApiResponse(responseCode = "200", description = "Success")
-    @GetMapping(produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> getBalances() {
-        return service.getBalances();
+    static ResponseEntity<OperationResponse> createdOperation(OperationResponse response) {
+        return ResponseEntity.created(URI.create("/operations/" + response.id()))
+                .body(response);
     }
 }
