@@ -92,6 +92,10 @@ Maven generates the Spring WebFlux API interfaces and request/response DTOs from
 
 To run all the unit and integration tests run command: `.\mvnw.cmd clean verify`.
 
+The same command generates a JaCoCo coverage report at `target/site/jacoco/index.html`.
+In GitHub Actions, the `Coverage` workflow shows a coverage table in the job summary and uploads the full HTML report as
+the `jacoco-coverage-report` artifact.
+
 ## The Original Assignment
 
 ### Background
