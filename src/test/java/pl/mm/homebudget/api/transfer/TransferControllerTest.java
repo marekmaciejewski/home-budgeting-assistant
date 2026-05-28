@@ -8,13 +8,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -35,19 +35,19 @@ class TransferControllerTest {
         String targetRegisterId = "Savings";
         BigDecimal amount = BigDecimal.TEN;
         TransferCommand request = new TransferCommand(sourceRegisterId, targetRegisterId, amount);
-        OperationResponse operation = new OperationResponse(
-                1L, Instant.now(), amount, sourceRegisterId, targetRegisterId);
+        OperationResponse operation = new OperationResponse(1L, OffsetDateTime.now(), amount)
+                .sourceRegisterId(sourceRegisterId)
+                .targetRegisterId(targetRegisterId);
         given(service.transfer(sourceRegisterId, targetRegisterId, amount)).willReturn(Mono.just(operation));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/transfers").build());
         // when
-        Mono<ResponseEntity<OperationResponse>> result = controller.createTransfer(request);
+        Mono<OperationResponse> result = controller.createTransfer(Mono.just(request), exchange);
         // then
         StepVerifier.create(result)
-                .assertNext(response -> {
-                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-                    assertThat(response.getHeaders().getLocation()).hasToString("/operations/1");
-                    assertThat(response.getBody()).isSameAs(operation);
-                })
+                .expectNext(operation)
                 .verifyComplete();
+        assertThat(exchange.getResponse().getHeaders().getLocation()).hasToString("/operations/1");
         then(service).should().transfer(sourceRegisterId, targetRegisterId, amount);
         then(service).shouldHaveNoMoreInteractions();
     }

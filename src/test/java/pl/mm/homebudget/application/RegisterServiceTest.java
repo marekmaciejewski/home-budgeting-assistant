@@ -19,6 +19,8 @@ import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -42,7 +44,8 @@ class RegisterServiceTest {
             @Mock BigDecimal amount, @Mock Operation recharge, @Mock Register target) {
         // given
         String registerId = "register name";
-        OperationResponse response = new OperationResponse(1L, Instant.now(), amount, null, registerId);
+        OperationResponse response = new OperationResponse(1L, OffsetDateTime.now(), amount)
+                .targetRegisterId(registerId);
         given(converter.createOperation(amount)).willReturn(recharge);
         given(registerRepository.findById(registerId)).willReturn(Mono.just(target));
         given(target.isActive()).willReturn(true);
@@ -123,7 +126,10 @@ class RegisterServiceTest {
         // given
         String sourceId = "source name";
         String targetId = "target name";
-        OperationResponse response = new OperationResponse(1L, Instant.now(), amount, sourceId, targetId);
+        OperationResponse response = new OperationResponse(
+                1L, Instant.now().atOffset(ZoneOffset.UTC), amount)
+                .sourceRegisterId(sourceId)
+                .targetRegisterId(targetId);
         given(converter.createOperation(amount)).willReturn(transfer);
         given(registerRepository.findById(sourceId)).willReturn(Mono.just(source));
         given(registerRepository.findById(targetId)).willReturn(Mono.just(target));

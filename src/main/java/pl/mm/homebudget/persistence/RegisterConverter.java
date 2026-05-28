@@ -41,9 +41,9 @@ public class RegisterConverter {
     public OperationResponse toResponse(Operation operation) {
         return new OperationResponse(
                 operation.getId(),
-                operation.getTimestamp(),
-                operation.getAmount(),
-                operation.getSourceRegisterId(),
-                operation.getTargetRegisterId());
+                operation.getTimestamp().atZone(clock.getZone()).toOffsetDateTime(),
+                operation.getAmount())
+                .sourceRegisterId(operation.getSourceRegisterId())
+                .targetRegisterId(operation.getTargetRegisterId());
     }
 }

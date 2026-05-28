@@ -17,6 +17,7 @@ Move `home-budgeting-assistant` from Spring Boot 2.5.1 to Spring Boot 4 while ke
 - Application web stack is still WebFlux.
 - Persistence uses Spring Data R2DBC repositories.
 - Database migration still uses Liquibase.
+- API interfaces and request/response DTOs are generated from `src/main/resources/openapi/home-budget-api.yaml`.
 
 ## Staged Path Taken
 
@@ -85,6 +86,22 @@ The Java model no longer uses JPA object graphs, cascades, or lazy collection lo
 class RegisterControllerIT {
 ```
 
+## OpenAPI Contract Generation
+
+The API contract is now checked in at `src/main/resources/openapi/home-budget-api.yaml`.
+`openapi-generator-maven-plugin:7.6.0` generates:
+
+- WebFlux API interfaces in `pl.mm.homebudget.api`.
+- Request and response DTO classes in `pl.mm.homebudget.api.dto`.
+
+The handwritten controllers implement those generated interfaces and keep only implementation logic. DTO source files
+under `src/main/java/pl/mm/homebudget/api/dto` were removed; schema and validation changes should be made in the
+OpenAPI file first.
+
+The generator uses `useResponseEntity=false` so WebFlux signatures stay direct (`Flux<T>` or `Mono<T>`) instead of
+nested wrappers such as `Mono<ResponseEntity<Flux<T>>>`. Create operations still set the `Location` header through
+`ServerWebExchange`.
+
 ## Verification
 
 Run with JDK 21:
@@ -142,6 +159,8 @@ Additional checks performed:
 - Reorganized Java packages around API, application, domain, persistence, and configuration responsibilities.
 - Renamed the Java package root from `com.solera.budgeting` to `pl.mm.homebudget` and Maven group from `com.solera` to `pl.mm`.
 - Renamed the Spring Boot entry point to `HomeBudgetApplication`.
+- Replaced handwritten API DTO records and controller OpenAPI annotations with OpenAPI-generated WebFlux interfaces
+  and DTO classes.
 
 ## Manual Liquibase Plugin Usage
 

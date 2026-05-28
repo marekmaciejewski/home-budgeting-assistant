@@ -50,6 +50,9 @@ The details of the input/output model are available on the swagger ui url:
 `localhost:8080/swagger-ui.html`
 This is also the easiest way to interact with the app.
 
+The checked-in OpenAPI contract lives in `src/main/resources/openapi/home-budget-api.yaml`.
+Maven generates the Spring WebFlux API interfaces and request/response DTOs from that file during the build.
+
 ## Sample requests
 
 ### POST /registers/Wallet/recharges

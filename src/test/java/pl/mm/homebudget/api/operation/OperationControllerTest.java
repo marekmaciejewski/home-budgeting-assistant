@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
@@ -28,10 +28,11 @@ class OperationControllerTest {
     @Test
     void getOperations_invokesService() {
         // given
-        OperationResponse operation = new OperationResponse(1L, Instant.now(), BigDecimal.TEN, null, "Wallet");
+        OperationResponse operation = new OperationResponse(1L, OffsetDateTime.now(), BigDecimal.TEN)
+                .targetRegisterId("Wallet");
         given(service.getOperations()).willReturn(Flux.just(operation));
         // when
-        Flux<OperationResponse> result = controller.getOperations();
+        Flux<OperationResponse> result = controller.getOperations(null);
         // then
         StepVerifier.create(result)
                 .expectNext(operation)
@@ -43,11 +44,12 @@ class OperationControllerTest {
     @Test
     void getOperation_invokesServiceWithGivenOperationId() {
         // given
-        long operationId = 1L;
-        OperationResponse operation = new OperationResponse(operationId, Instant.now(), BigDecimal.TEN, null, "Wallet");
+        Long operationId = 1L;
+        OperationResponse operation = new OperationResponse(operationId, OffsetDateTime.now(), BigDecimal.TEN)
+                .targetRegisterId("Wallet");
         given(service.getOperation(operationId)).willReturn(Mono.just(operation));
         // when
-        Mono<OperationResponse> result = controller.getOperation(operationId);
+        Mono<OperationResponse> result = controller.getOperation(operationId, null);
         // then
         StepVerifier.create(result)
                 .expectNext(operation)

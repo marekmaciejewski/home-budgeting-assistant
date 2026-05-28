@@ -16,7 +16,10 @@ import static org.assertj.core.api.Assertions.from;
 
 class RegisterConverterTest {
 
-    private Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+    private static final Instant NOW = Instant.parse("2026-05-28T10:15:30Z");
+    private static final ZoneId TEST_ZONE = ZoneId.of("Europe/Warsaw");
+
+    private Clock clock = Clock.fixed(NOW, TEST_ZONE);
     private RegisterConverter converter = new RegisterConverter(clock);
 
     @Test
@@ -76,8 +79,8 @@ class RegisterConverterTest {
         RegisterResponse response = converter.toResponse(register);
         // then
         assertThat(response)
-                .returns("Test id", from(RegisterResponse::id))
-                .returns(BigDecimal.TEN, from(RegisterResponse::balance));
+                .returns("Test id", from(RegisterResponse::getId))
+                .returns(BigDecimal.TEN, from(RegisterResponse::getBalance));
     }
 
     @Test
@@ -93,10 +96,10 @@ class RegisterConverterTest {
         OperationResponse response = converter.toResponse(operation);
         // then
         assertThat(response)
-                .returns(1L, from(OperationResponse::id))
-                .returns(clock.instant(), from(OperationResponse::timestamp))
-                .returns(BigDecimal.TEN, from(OperationResponse::amount))
-                .returns("source", from(OperationResponse::sourceRegisterId))
-                .returns("target", from(OperationResponse::targetRegisterId));
+                .returns(1L, from(OperationResponse::getId))
+                .returns(NOW.atZone(TEST_ZONE).toOffsetDateTime(), from(OperationResponse::getTimestamp))
+                .returns(BigDecimal.TEN, from(OperationResponse::getAmount))
+                .returns("source", from(OperationResponse::getSourceRegisterId))
+                .returns("target", from(OperationResponse::getTargetRegisterId));
     }
 }

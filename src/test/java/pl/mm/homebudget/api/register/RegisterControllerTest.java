@@ -9,14 +9,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.math.BigDecimal;
-import java.time.Instant;
+import java.time.OffsetDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
@@ -36,7 +36,7 @@ class RegisterControllerTest {
         RegisterResponse register = new RegisterResponse("Wallet", BigDecimal.TEN);
         given(service.getRegisters()).willReturn(Flux.just(register));
         // when
-        Flux<RegisterResponse> result = controller.getRegisters();
+        Flux<RegisterResponse> result = controller.getRegisters(null);
         // then
         StepVerifier.create(result)
                 .expectNext(register)
@@ -52,7 +52,7 @@ class RegisterControllerTest {
         RegisterResponse register = new RegisterResponse(registerId, BigDecimal.TEN);
         given(service.getRegister(registerId)).willReturn(Mono.just(register));
         // when
-        Mono<RegisterResponse> result = controller.getRegister(registerId);
+        Mono<RegisterResponse> result = controller.getRegister(registerId, null);
         // then
         StepVerifier.create(result)
                 .expectNext(register)
@@ -67,18 +67,18 @@ class RegisterControllerTest {
         String registerId = "Wallet";
         BigDecimal amount = BigDecimal.TEN;
         RechargeCommand request = new RechargeCommand(amount);
-        OperationResponse operation = new OperationResponse(1L, Instant.now(), amount, null, registerId);
+        OperationResponse operation = new OperationResponse(1L, OffsetDateTime.now(), amount)
+                .targetRegisterId(registerId);
         given(service.recharge(registerId, amount)).willReturn(Mono.just(operation));
+        MockServerWebExchange exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/registers/Wallet/recharges").build());
         // when
-        Mono<ResponseEntity<OperationResponse>> result = controller.createRecharge(registerId, request);
+        Mono<OperationResponse> result = controller.createRecharge(registerId, Mono.just(request), exchange);
         // then
         StepVerifier.create(result)
-                .assertNext(response -> {
-                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-                    assertThat(response.getHeaders().getLocation()).hasToString("/operations/1");
-                    assertThat(response.getBody()).isSameAs(operation);
-                })
+                .expectNext(operation)
                 .verifyComplete();
+        assertThat(exchange.getResponse().getHeaders().getLocation()).hasToString("/operations/1");
         then(service).should().recharge(registerId, amount);
         then(service).shouldHaveNoMoreInteractions();
     }
