@@ -1,0 +1,303 @@
+openapi: 3.0.3
+info:
+  title: Home Budget API
+  version: 1.0.0
+  description: Reactive API for registers, recharges, transfers, and balance-changing operations.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: registers
+  - name: transfers
+  - name: operations
+paths:
+  /registers:
+    get:
+      tags:
+        - registers
+      operationId: getRegisters
+      summary: Get all active registers.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegisterResponse"
+  /registers/{registerId}:
+    get:
+      tags:
+        - registers
+      operationId: getRegister
+      summary: Get an active register by id.
+      parameters:
+        - $ref: "#/components/parameters/RegisterId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /registers/{registerId}/recharges:
+    post:
+      tags:
+        - registers
+      operationId: createRecharge
+      summary: Recharge a particular register with provided amount.
+      parameters:
+        - $ref: "#/components/parameters/RegisterId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RechargeCommand"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: Created operation URI.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /transfers:
+    post:
+      tags:
+        - transfers
+      operationId: createTransfer
+      summary: Transfer a provided amount from source to target register.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferCommand"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: Created operation URI.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /operations:
+    get:
+      tags:
+        - operations
+      operationId: getOperations
+      summary: Get all balance operations.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OperationResponse"
+  /operations/{operationId}:
+    get:
+      tags:
+        - operations
+      operationId: getOperation
+      summary: Get a balance operation by id.
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          description: The operation identifier.
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  parameters:
+    RegisterId:
+      name: registerId
+      in: path
+      required: true
+      description: The register identifier. Register IDs are currently register names.
+      schema:
+        type: string
+        example: Wallet
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+    NotFound:
+      description: Resource Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+  schemas:
+    ProblemDetail:
+      description: Problem detail response.
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          example: about:blank
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          example: 400
+        detail:
+          type: string
+          example: source and target register must be different
+        instance:
+          type: string
+          example: /transfers
+        errors:
+          type: array
+          description: Field validation errors, present for validation failures.
+          items:
+            $ref: "#/components/schemas/ValidationError"
+      required:
+        - title
+        - status
+        - detail
+        - instance
+    ValidationError:
+      description: Field validation error.
+      type: object
+      properties:
+        field:
+          type: string
+          example: amount
+        message:
+          type: string
+          example: must be greater than 0
+      required:
+        - field
+        - message
+    RegisterResponse:
+      description: Register
+      type: object
+      properties:
+        id:
+          type: string
+          description: The register identifier.
+          example: Wallet
+        balance:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+          description: The current register balance as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 1000.00
+      required:
+        - id
+        - balance
+    OperationResponse:
+      description: Balance operation
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The operation identifier.
+          example: 1
+        timestamp:
+          type: string
+          format: date-time
+          description: The operation timestamp.
+        amount:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+          description: The operation amount as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 1500.00
+        sourceRegisterId:
+          type: string
+          nullable: true
+          description: The source register identifier.
+          example: Wallet
+        targetRegisterId:
+          type: string
+          nullable: true
+          description: The target register identifier.
+          example: Food expenses
+      required:
+        - id
+        - timestamp
+        - amount
+    RechargeCommand:
+      description: Recharge command
+      type: object
+      properties:
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          multipleOf: 0.01
+          x-extra-annotation: '@jakarta.validation.constraints.Digits(integer = 17, fraction = 2, message = "must have no more than 17 integer digits and 2 decimal places")'
+          description: The amount to recharge with, as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 2500.00
+      required:
+        - amount
+    TransferCommand:
+      description: Transfer command
+      type: object
+      properties:
+        sourceRegisterId:
+          type: string
+          minLength: 1
+          pattern: ^.*\S.*$
+          description: The source register identifier.
+          example: Wallet
+        targetRegisterId:
+          type: string
+          minLength: 1
+          pattern: ^.*\S.*$
+          description: The target register identifier.
+          example: Food expenses
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          multipleOf: 0.01
+          x-extra-annotation: '@jakarta.validation.constraints.Digits(integer = 17, fraction = 2, message = "must have no more than 17 integer digits and 2 decimal places")'
+          description: The amount to transfer, as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 1500.00
+      required:
+        - sourceRegisterId
+        - targetRegisterId
+        - amount
