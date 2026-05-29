@@ -115,8 +115,8 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 Current result:
 
 - Build: success.
-- Unit tests: 24 passed.
-- Integration tests: 26 passed.
+- Unit tests: no tests matched the current Surefire naming pattern.
+- Integration tests: 38 passed.
 
 Additional checks performed:
 
@@ -128,17 +128,6 @@ Additional checks performed:
 ## Remaining Warnings
 
 - Springdoc logs that `/v3/api-docs` and `/swagger-ui.html` are enabled by default. This is expected unless those endpoints should be disabled in a production profile.
-
-## Possible Follow-Up Work
-
-- [x] Keep Swagger UI and API docs enabled because this is a demo/showcase project rather than a production service.
-- [x] Replace brittle JSON substring assertions in `RegisterDbIT` with JSONAssert-backed structural assertions.
-- [x] Standardize API error responses, preferably using `ProblemDetail`, so validation and domain errors share one
-  response shape.
-- [x] Fix mojibake in the original assignment section of `README.md`.
-- [x] Keep register path IDs as human-readable register names for now.
-- [ ] Add money validation rules for amount precision and scale, for example rejecting values with more than two
-  decimal places.
 
 ## Completed Follow-Up Hardening
 
@@ -168,6 +157,11 @@ Additional checks performed:
 - Kept register path IDs as human-readable register names for now. This fits the current demo/showcase API because
   registers are seeded, not user-managed, and there is no register rename workflow. If register management grows later,
   stable URL-safe slugs should be preferred over exposing mutable display names as resource IDs.
+- Added money amount precision and scale validation at the OpenAPI boundary. Request amounts remain generated as
+  `BigDecimal`, are positive, and now reject values with more than 17 integer digits or more than two decimal places
+  through generated `@Digits(integer = 17, fraction = 2)` validation. The OpenAPI schema documents cent-level
+  granularity with `multipleOf: 0.01`; a large numeric `maximum` was intentionally not used because the generator rounded
+  `99999999999999999.99` to scientific notation.
 
 ## Manual Liquibase Plugin Usage
 

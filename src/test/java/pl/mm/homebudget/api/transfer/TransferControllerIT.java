@@ -28,7 +28,10 @@ class TransferControllerIT {
             "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"\",\"amount\":1500}",
             "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":null}",
             "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":0}",
-            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":-1500}"
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":-1500}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":1.001}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":1.230}",
+            "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":100000000000000000}"
     })
     void createTransfer_returnsBadRequest(String payload) {
         testClient

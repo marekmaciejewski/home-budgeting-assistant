@@ -23,7 +23,10 @@ class RegisterControllerIT {
     @ValueSource(strings = {
             "{\"amount\":null}",
             "{\"amount\":0}",
-            "{\"amount\":-2500}"
+            "{\"amount\":-2500}",
+            "{\"amount\":1.001}",
+            "{\"amount\":1.230}",
+            "{\"amount\":100000000000000000}"
     })
     void createRecharge_returnsBadRequest(String payload) {
         testClient

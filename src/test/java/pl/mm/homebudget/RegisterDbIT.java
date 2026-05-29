@@ -36,7 +36,7 @@ class RegisterDbIT {
         String balances = balancesJson(1000, 5000, 0, 0);
         return Stream.of(
                 dynamicTest("check initial balances", () -> checkBalances(balances)),
-                dynamicTest("check single register", () -> checkRegister("Wallet", BigDecimal.valueOf(1000.00))),
+                dynamicTest("check single register", () -> checkRegister("Wallet", new BigDecimal("1000.00"))),
                 dynamicTest("check initial operation history", () -> checkOperations(0)));
     }
 
@@ -117,8 +117,12 @@ class RegisterDbIT {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.id").isEqualTo(registerId)
-                .jsonPath("$.balance").isEqualTo(balance.doubleValue());
+                .json("""
+                        {
+                          "id": "%s",
+                          "balance": %s
+                        }
+                        """.formatted(registerId, balance), JsonCompareMode.LENIENT);
     }
 
     private void checkOperations(int expectedCount) {

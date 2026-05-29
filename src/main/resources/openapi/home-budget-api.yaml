@@ -219,7 +219,9 @@ components:
           example: Wallet
         balance:
           type: number
-          description: The current register balance.
+          minimum: 0
+          multipleOf: 0.01
+          description: The current register balance as a decimal amount with at most 17 integer digits and two fractional digits.
           example: 1000.00
       required:
         - id
@@ -239,7 +241,9 @@ components:
           description: The operation timestamp.
         amount:
           type: number
-          description: The operation amount.
+          minimum: 0
+          multipleOf: 0.01
+          description: The operation amount as a decimal amount with at most 17 integer digits and two fractional digits.
           example: 1500.00
         sourceRegisterId:
           type: string
@@ -263,8 +267,10 @@ components:
           type: number
           minimum: 0
           exclusiveMinimum: true
-          description: The amount to recharge with.
-          example: 2500
+          multipleOf: 0.01
+          x-extra-annotation: '@jakarta.validation.constraints.Digits(integer = 17, fraction = 2, message = "must have no more than 17 integer digits and 2 decimal places")'
+          description: The amount to recharge with, as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 2500.00
       required:
         - amount
     TransferCommand:
@@ -287,8 +293,10 @@ components:
           type: number
           minimum: 0
           exclusiveMinimum: true
-          description: The amount to transfer.
-          example: 1500
+          multipleOf: 0.01
+          x-extra-annotation: '@jakarta.validation.constraints.Digits(integer = 17, fraction = 2, message = "must have no more than 17 integer digits and 2 decimal places")'
+          description: The amount to transfer, as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 1500.00
       required:
         - sourceRegisterId
         - targetRegisterId
