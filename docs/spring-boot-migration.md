@@ -135,8 +135,8 @@ Additional checks performed:
 - [x] Replace brittle JSON substring assertions in `RegisterDbIT` with JSONAssert-backed structural assertions.
 - [x] Standardize API error responses, preferably using `ProblemDetail`, so validation and domain errors share one
   response shape.
-- [ ] Fix mojibake in the original assignment section of `README.md`.
-- [ ] Decide whether register path IDs should remain human-readable names or move to stable technical IDs/slugs.
+- [x] Fix mojibake in the original assignment section of `README.md`.
+- [x] Keep register path IDs as human-readable register names for now.
 - [ ] Add money validation rules for amount precision and scale, for example rejecting values with more than two
   decimal places.
 
@@ -165,6 +165,9 @@ Additional checks performed:
 - Standardized validation and domain API errors on `application/problem+json` `ProblemDetail` responses.
 - Mapped the OpenAPI `ProblemDetail` schema to Spring's `org.springframework.http.ProblemDetail` so no redundant
   `ProblemDetail` DTO is generated; the validation `errors` extension uses the generated `ValidationError` DTO.
+- Kept register path IDs as human-readable register names for now. This fits the current demo/showcase API because
+  registers are seeded, not user-managed, and there is no register rename workflow. If register management grows later,
+  stable URL-safe slugs should be preferred over exposing mutable display names as resource IDs.
 
 ## Manual Liquibase Plugin Usage
 

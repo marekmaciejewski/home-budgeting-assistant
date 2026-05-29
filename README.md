@@ -1,7 +1,3 @@
-<style>
-    ol ol { list-style-type: lower-alpha; }
-</style>
-
 # home-budgeting-assistant
 
 ## Preparation
@@ -110,11 +106,11 @@ for the upcoming demo.
 ### The prototype
 
 Planned home budgeting assistant is meant to operate on so-called registers. A register is conceptually similar to a
-bank account – one can transfer money to and from it, and both of these operations directly affect its balance. The
+bank account - one can transfer money to and from it, and both of these operations directly affect its balance. The
 system is supposed to keep track of multiple registers and allow transferring funds between them. This means an end user
-can for example define registers: “wallet”, “savings”, “food expenses”, “car maintenance” and be able to track their
+can for example define registers: "wallet", "savings", "food expenses", "car maintenance" and be able to track their
 spending by transferring amounts between them. In the future it would be possible to keep history of individual
-transfers, archive transfers and reset balance of registers – for now, however, this is out of scope and the business
+transfers, archive transfers and reset balance of registers - for now, however, this is out of scope and the business
 has pinpointed what they expect the app to be capable of for the sake of a successful presentation.
 
 ### Business requirements
@@ -122,16 +118,16 @@ has pinpointed what they expect the app to be capable of for the sake of a succe
 Business deems the following aspects as must-haves:
 
 1. A demo environment with the following registers already existing:
-    1. “Wallet” register with a balance of 1000
-    2. “Savings” register with a balance of 5000
-    3. “Insurance policy” register with a balance of 0
-    4. “Food expenses” register with a balance of 0
+    1. "Wallet" register with a balance of 1000
+    2. "Savings" register with a balance of 5000
+    3. "Insurance policy" register with a balance of 0
+    4. "Food expenses" register with a balance of 0
 2. A deployed application which needs to expose the following operations:
-    1. Recharge an existing register with given amount – the register’s balance should then be updated accordingly with
+    1. Recharge an existing register with given amount - the register's balance should then be updated accordingly with
        the requested amount added
-    2. Transfer given amount between two existing registers – this means that given amount should be subtracted from
-       source register’s balance and added to destination register’s balance
-    3. Get current balance of all registers – this should simply inform about current balance of all existing registers
+    2. Transfer given amount between two existing registers - this means that given amount should be subtracted from
+       source register's balance and added to destination register's balance
+    3. Get current balance of all registers - this should simply inform about current balance of all existing registers
 3. Data persistence: the application should persist balance of each register each time it is updated and even in case
    the whole system is turned off, all registers should have their balances set to previous values upon its restart.
 
@@ -150,14 +146,14 @@ The following guidelines have to be taken into account:
 The following scenario demonstrates what is the expected behaviour of the system. It assumes we are running a fresh
 demo (with all predefined registers existing and having corresponding balances):
 
-1. A recharge is executed for the “Wallet” register with an amount of 2500.This should increase the register’s balance
+1. A recharge is executed for the "Wallet" register with an amount of 2500. This should increase the register's balance
    to 3500.
-2. A transfer of 1500 from “Wallet” to “Food expenses” registry is executed. This should bring “Wallet” balance to 2000
-   and “Food expenses” balance to 1500.
-3. A transfer of 500 from “Savings” to “Insurance policy” registry is executed. This should bring “Savings” balance to
-   4500 and “Insurance policy” balance to 500.
-4. A transfer of 1000 from “Wallet” to “Savings” registry is executed. This should bring “Wallet” balance to 1000 and
-   “Savings” balance to 5500.
+2. A transfer of 1500 from "Wallet" to "Food expenses" registry is executed. This should bring "Wallet" balance to 2000
+   and "Food expenses" balance to 1500.
+3. A transfer of 500 from "Savings" to "Insurance policy" registry is executed. This should bring "Savings" balance to
+   4500 and "Insurance policy" balance to 500.
+4. A transfer of 1000 from "Wallet" to "Savings" registry is executed. This should bring "Wallet" balance to 1000 and
+   "Savings" balance to 5500.
 5. Balance info on all registries is executed: this should print the list of all registries accompanied by their
    balance, for example:
    ```text
