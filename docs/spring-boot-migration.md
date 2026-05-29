@@ -133,7 +133,7 @@ Additional checks performed:
 
 - [x] Keep Swagger UI and API docs enabled because this is a demo/showcase project rather than a production service.
 - [x] Replace brittle JSON substring assertions in `RegisterDbIT` with JSONAssert-backed structural assertions.
-- [ ] Standardize API error responses, preferably using `ProblemDetail`, so validation and domain errors share one
+- [x] Standardize API error responses, preferably using `ProblemDetail`, so validation and domain errors share one
   response shape.
 - [ ] Fix mojibake in the original assignment section of `README.md`.
 - [ ] Decide whether register path IDs should remain human-readable names or move to stable technical IDs/slugs.
@@ -162,6 +162,9 @@ Additional checks performed:
   and DTO classes.
 - Kept Swagger UI and `/v3/api-docs` enabled because this is a demo/showcase project rather than a production service.
 - Replaced brittle JSON substring assertions in `RegisterDbIT` with JSONAssert-backed structural assertions.
+- Standardized validation and domain API errors on `application/problem+json` `ProblemDetail` responses.
+- Mapped the OpenAPI `ProblemDetail` schema to Spring's `org.springframework.http.ProblemDetail` so no redundant
+  `ProblemDetail` DTO is generated; the validation `errors` extension uses the generated `ValidationError` DTO.
 
 ## Manual Liquibase Plugin Usage
 

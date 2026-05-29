@@ -155,18 +155,60 @@ components:
     BadRequest:
       description: Bad Request
       content:
-        text/plain:
+        application/problem+json:
           schema:
-            type: string
-            example: source and target register must be different
+            $ref: "#/components/schemas/ProblemDetail"
     NotFound:
       description: Resource Not Found
       content:
-        text/plain:
+        application/problem+json:
           schema:
-            type: string
-            example: Wallet register not found or not active
+            $ref: "#/components/schemas/ProblemDetail"
   schemas:
+    ProblemDetail:
+      description: Problem detail response.
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+          example: about:blank
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: integer
+          format: int32
+          example: 400
+        detail:
+          type: string
+          example: source and target register must be different
+        instance:
+          type: string
+          example: /transfers
+        errors:
+          type: array
+          description: Field validation errors, present for validation failures.
+          items:
+            $ref: "#/components/schemas/ValidationError"
+      required:
+        - title
+        - status
+        - detail
+        - instance
+    ValidationError:
+      description: Field validation error.
+      type: object
+      properties:
+        field:
+          type: string
+          example: amount
+        message:
+          type: string
+          example: must be greater than 0
+      required:
+        - field
+        - message
     RegisterResponse:
       description: Register
       type: object

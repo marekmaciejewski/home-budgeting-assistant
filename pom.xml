@@ -136,6 +136,12 @@
                             <generateModelDocumentation>false</generateModelDocumentation>
                             <generateModelTests>false</generateModelTests>
                             <generateSupportingFiles>false</generateSupportingFiles>
+                            <schemaMappings>
+                                <schemaMapping>ProblemDetail=org.springframework.http.ProblemDetail</schemaMapping>
+                            </schemaMappings>
+                            <importMappings>
+                                <importMapping>ProblemDetail=org.springframework.http.ProblemDetail</importMapping>
+                            </importMappings>
                             <configOptions>
                                 <dateLibrary>java8</dateLibrary>
                                 <hideGenerationTimestamp>true</hideGenerationTimestamp>

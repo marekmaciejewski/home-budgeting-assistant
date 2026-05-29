@@ -1,16 +1,19 @@
 package pl.mm.homebudget.api.register;
 
+import pl.mm.homebudget.api.error.GlobalExceptionHandler;
 import pl.mm.homebudget.application.RegisterService;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webflux.test.autoconfigure.WebFluxTest;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 @MockitoBean(types = RegisterService.class)
 @WebFluxTest(RegisterController.class)
+@Import(GlobalExceptionHandler.class)
 class RegisterControllerIT {
 
     @Autowired
@@ -29,10 +32,13 @@ class RegisterControllerIT {
                 .bodyValue(payload)
                 .exchange()
                 .expectStatus().isBadRequest()
+                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON)
                 .expectBody()
-                .jsonPath("$.timestamp").exists()
-                .jsonPath("$.path").isEqualTo("/registers/Wallet/recharges")
+                .jsonPath("$.title").isEqualTo("Bad Request")
                 .jsonPath("$.status").isEqualTo(400)
-                .jsonPath("$.error").isEqualTo("Bad Request");
+                .jsonPath("$.detail").isEqualTo("Request validation failed")
+                .jsonPath("$.instance").isEqualTo("/registers/Wallet/recharges")
+                .jsonPath("$.errors[0].field").isEqualTo("amount")
+                .jsonPath("$.errors[0].message").exists();
     }
 }
