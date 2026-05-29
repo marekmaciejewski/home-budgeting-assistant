@@ -131,9 +131,8 @@ Additional checks performed:
 
 ## Possible Follow-Up Work
 
-- [ ] Profile-gate Swagger UI and API docs so `/v3/api-docs` and `/swagger-ui.html` are enabled locally but disabled
-  in production-like profiles.
-- [ ] Replace brittle JSON substring assertions in `RegisterDbIT` with JSONPath assertions.
+- [x] Keep Swagger UI and API docs enabled because this is a demo/showcase project rather than a production service.
+- [x] Replace brittle JSON substring assertions in `RegisterDbIT` with JSONAssert-backed structural assertions.
 - [ ] Standardize API error responses, preferably using `ProblemDetail`, so validation and domain errors share one
   response shape.
 - [ ] Fix mojibake in the original assignment section of `README.md`.
@@ -161,6 +160,8 @@ Additional checks performed:
 - Renamed the Spring Boot entry point to `HomeBudgetApplication`.
 - Replaced handwritten API DTO records and controller OpenAPI annotations with OpenAPI-generated WebFlux interfaces
   and DTO classes.
+- Kept Swagger UI and `/v3/api-docs` enabled because this is a demo/showcase project rather than a production service.
+- Replaced brittle JSON substring assertions in `RegisterDbIT` with JSONAssert-backed structural assertions.
 
 ## Manual Liquibase Plugin Usage
 
