@@ -64,11 +64,6 @@
             <artifactId>spring-boot-starter-webflux-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.projectreactor</groupId>
-            <artifactId>reactor-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -203,6 +198,7 @@
                                 <format>CSV</format>
                             </formats>
                             <excludes>
+                                <exclude>pl/mm/homebudget/HomeBudgetApplication*</exclude>
                                 <exclude>pl/mm/homebudget/api/*Api*</exclude>
                                 <exclude>pl/mm/homebudget/api/dto/**</exclude>
                             </excludes>

@@ -64,6 +64,9 @@ public class RegisterService {
     }
 
     private Mono<Operation> saveTransfer(Register source, Register target, Operation transfer) {
+        if (source.getBalance().compareTo(transfer.getAmount()) < 0) {
+            return Mono.error(new InvalidTransferException(source.getId() + " register has insufficient balance"));
+        }
         converter.updateSource(source, transfer);
         converter.updateTarget(target, transfer);
         return registerRepository.save(source)

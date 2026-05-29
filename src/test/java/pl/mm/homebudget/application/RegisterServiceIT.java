@@ -69,4 +69,32 @@ class RegisterServiceIT {
 
         assertThat(actualMessage).isEqualTo("source and target register must be different");
     }
+
+    @Test
+    void transfer_returnsBadRequest_whenSourceRegisterBalanceIsInsufficient() {
+        String body = "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Savings\",\"amount\":999999}";
+
+        String actualMessage = testClient.post().uri("/transfers")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(body)
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody(String.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(actualMessage).isEqualTo("Wallet register has insufficient balance");
+    }
+
+    @Test
+    void getOperation_returnsNotFound() {
+        String actualMessage = testClient.get().uri("/operations/{operationId}", 999L)
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody(String.class)
+                .returnResult()
+                .getResponseBody();
+
+        assertThat(actualMessage).isEqualTo("999 operation not found");
+    }
 }

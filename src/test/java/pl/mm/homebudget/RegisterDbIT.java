@@ -8,6 +8,7 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import java.math.BigDecimal;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,7 +39,10 @@ class RegisterDbIT {
                 "\"id\":\"Insurance policy\",\"balance\":0.00",
                 "\"id\":\"Food expenses\",\"balance\":0.00"
         };
-        return Stream.of(dynamicTest("check initial balances", () -> checkBalances(balances)));
+        return Stream.of(
+                dynamicTest("check initial balances", () -> checkBalances(balances)),
+                dynamicTest("check single register", () -> checkRegister("Wallet", BigDecimal.valueOf(1000.00))),
+                dynamicTest("check initial operation history", () -> checkOperations(0)));
     }
 
     private Stream<DynamicNode> rechargeWallet() {
@@ -86,7 +90,8 @@ class RegisterDbIT {
         };
         return Stream.of(
                 dynamicTest("transfer", () -> transfer("Wallet", "Savings", 1000)),
-                dynamicTest("check final balances", () -> checkBalances(balances)));
+                dynamicTest("check final balances", () -> checkBalances(balances)),
+                dynamicTest("check operation history", () -> checkOperations(4)));
     }
 
     private void recharge(String register, int amount) {
@@ -130,6 +135,23 @@ class RegisterDbIT {
                 .returnResult()
                 .getResponseBody();
         assertThat(actualPrintout).contains(balances);
+    }
+
+    private void checkRegister(String registerId, BigDecimal balance) {
+        testClient.get().uri("/registers/{registerId}", registerId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.id").isEqualTo(registerId)
+                .jsonPath("$.balance").isEqualTo(balance.doubleValue());
+    }
+
+    private void checkOperations(int expectedCount) {
+        testClient.get().uri("/operations")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(expectedCount);
     }
 
     private String nullableJson(String value) {
