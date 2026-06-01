@@ -32,9 +32,9 @@ class RegisterServiceIT {
             "Idle"
     })
     void recharge_returnsNotFound(String registerId) {
-        Map<String, Object> problem = testClient.post().uri("/registers/" + registerId + "/recharges")
+        Map<String, Object> problem = testClient.post().uri("/operations/recharges")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("{\"amount\":2500}")
+                .bodyValue("{\"registerId\":\"" + registerId + "\",\"amount\":2500}")
                 .exchange()
                 .expectStatus().isNotFound()
                 .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON)
@@ -42,7 +42,7 @@ class RegisterServiceIT {
                 .returnResult()
                 .getResponseBody();
 
-        assertProblem(problem, HttpStatus.NOT_FOUND, "/registers/" + registerId + "/recharges");
+        assertProblem(problem, HttpStatus.NOT_FOUND, "/operations/recharges");
         assertThat((String) problem.get("detail")).endsWith(" register not found or not active");
     }
 
@@ -54,7 +54,7 @@ class RegisterServiceIT {
             "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Idle\",\"amount\":1500}"
     })
     void transfer_returnsNotFound(String body) {
-        Map<String, Object> problem = testClient.post().uri("/transfers")
+        Map<String, Object> problem = testClient.post().uri("/operations/transfers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .exchange()
@@ -64,7 +64,7 @@ class RegisterServiceIT {
                 .returnResult()
                 .getResponseBody();
 
-        assertProblem(problem, HttpStatus.NOT_FOUND, "/transfers");
+        assertProblem(problem, HttpStatus.NOT_FOUND, "/operations/transfers");
         assertThat((String) problem.get("detail")).endsWith(" register not found or not active");
     }
 
@@ -72,7 +72,7 @@ class RegisterServiceIT {
     void transfer_returnsBadRequest_whenSourceAndTargetRegisterAreTheSame() {
         String body = "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Wallet\",\"amount\":1500}";
 
-        Map<String, Object> problem = testClient.post().uri("/transfers")
+        Map<String, Object> problem = testClient.post().uri("/operations/transfers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .exchange()
@@ -82,7 +82,7 @@ class RegisterServiceIT {
                 .returnResult()
                 .getResponseBody();
 
-        assertProblem(problem, HttpStatus.BAD_REQUEST, "/transfers");
+        assertProblem(problem, HttpStatus.BAD_REQUEST, "/operations/transfers");
         assertThat(problem).containsEntry("detail", "source and target register must be different");
     }
 
@@ -90,7 +90,7 @@ class RegisterServiceIT {
     void transfer_returnsBadRequest_whenSourceRegisterBalanceIsInsufficient() {
         String body = "{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Savings\",\"amount\":999999}";
 
-        Map<String, Object> problem = testClient.post().uri("/transfers")
+        Map<String, Object> problem = testClient.post().uri("/operations/transfers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(body)
                 .exchange()
@@ -100,7 +100,7 @@ class RegisterServiceIT {
                 .returnResult()
                 .getResponseBody();
 
-        assertProblem(problem, HttpStatus.BAD_REQUEST, "/transfers");
+        assertProblem(problem, HttpStatus.BAD_REQUEST, "/operations/transfers");
         assertThat(problem).containsEntry("detail", "Wallet register has insufficient balance");
     }
 

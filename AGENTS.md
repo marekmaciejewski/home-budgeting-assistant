@@ -47,7 +47,6 @@ pl.mm.homebudget
     error
     operation
     register
-    transfer
   application
   config
   domain
@@ -71,15 +70,17 @@ Primary endpoints:
 
 - `GET /registers`
 - `GET /registers/{registerId}`
-- `POST /registers/{registerId}/recharges`
-- `POST /transfers`
 - `GET /operations`
 - `GET /operations/{operationId}`
+- `POST /operations/recharges`
+- `POST /operations/transfers`
 
 Removed legacy endpoints:
 
 - `POST /registers/recharge`
 - `POST /registers/transfer`
+- `POST /registers/{registerId}/recharges`
+- `POST /transfers`
 
 Do not reintroduce those old endpoints as compatibility aliases unless the user explicitly asks.
 

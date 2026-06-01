@@ -138,10 +138,10 @@ Additional checks performed:
 - Added a resource-oriented JSON API:
   - `GET /registers`
   - `GET /registers/{registerId}`
-  - `POST /registers/{registerId}/recharges`
-  - `POST /transfers`
   - `GET /operations`
   - `GET /operations/{operationId}`
+  - `POST /operations/recharges`
+  - `POST /operations/transfers`
 - Removed old `POST /registers/recharge` and `POST /registers/transfer` endpoints after replacing them with the
   resource-oriented API.
 - Reorganized Java packages around API, application, domain, persistence, and configuration responsibilities.

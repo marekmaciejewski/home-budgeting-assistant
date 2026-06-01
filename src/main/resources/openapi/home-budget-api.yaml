@@ -7,7 +7,6 @@ servers:
   - url: http://localhost:8080
 tags:
   - name: registers
-  - name: transfers
   - name: operations
 paths:
   /registers:
@@ -42,14 +41,27 @@ paths:
                 $ref: "#/components/schemas/RegisterResponse"
         "404":
           $ref: "#/components/responses/NotFound"
-  /registers/{registerId}/recharges:
+  /operations:
+    get:
+      tags:
+        - operations
+      operationId: getOperations
+      summary: Get all balance operations.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OperationResponse"
+  /operations/recharges:
     post:
       tags:
-        - registers
+        - operations
       operationId: createRecharge
-      summary: Recharge a particular register with provided amount.
-      parameters:
-        - $ref: "#/components/parameters/RegisterId"
+      summary: Create a recharge operation for a register.
       requestBody:
         required: true
         content:
@@ -73,12 +85,12 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
-  /transfers:
+  /operations/transfers:
     post:
       tags:
-        - transfers
+        - operations
       operationId: createTransfer
-      summary: Transfer a provided amount from source to target register.
+      summary: Create a transfer operation between registers.
       requestBody:
         required: true
         content:
@@ -102,21 +114,6 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "404":
           $ref: "#/components/responses/NotFound"
-  /operations:
-    get:
-      tags:
-        - operations
-      operationId: getOperations
-      summary: Get all balance operations.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/OperationResponse"
   /operations/{operationId}:
     get:
       tags:
@@ -185,7 +182,7 @@ components:
           example: source and target register must be different
         instance:
           type: string
-          example: /transfers
+          example: /operations/transfers
         errors:
           type: array
           description: Field validation errors, present for validation failures.
@@ -263,6 +260,12 @@ components:
       description: Recharge command
       type: object
       properties:
+        registerId:
+          type: string
+          minLength: 1
+          pattern: ^.*\S.*$
+          description: The target register identifier.
+          example: Wallet
         amount:
           type: number
           minimum: 0
@@ -272,6 +275,7 @@ components:
           description: The amount to recharge with, as a decimal amount with at most 17 integer digits and two fractional digits.
           example: 2500.00
       required:
+        - registerId
         - amount
     TransferCommand:
       description: Transfer command

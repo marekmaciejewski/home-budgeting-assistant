@@ -35,10 +35,10 @@ The app exposes the following primary API on the default host:
 |--------|--------------------------------------|-------------------------------------|
 | GET    | `/registers`                         | get all active registers            |
 | GET    | `/registers/{registerId}`            | get one active register             |
-| POST   | `/registers/{registerId}/recharges`  | recharge a register                 |
-| POST   | `/transfers`                         | transfer between registers          |
 | GET    | `/operations`                        | get all balance-changing operations |
 | GET    | `/operations/{operationId}`          | get one balance-changing operation  |
+| POST   | `/operations/recharges`              | create a recharge operation         |
+| POST   | `/operations/transfers`              | create a transfer operation         |
 
 Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
@@ -51,15 +51,16 @@ Maven generates the Spring WebFlux API interfaces and request/response DTOs from
 
 ## Sample requests
 
-### POST /registers/Wallet/recharges
+### POST /operations/recharges
 
 ```json
 {
+  "registerId": "Wallet",
   "amount": 2500
 }
 ```
 
-### POST /transfers
+### POST /operations/transfers
 
 ```json
 {

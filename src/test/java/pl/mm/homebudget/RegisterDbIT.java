@@ -70,14 +70,14 @@ class RegisterDbIT {
     }
 
     private void recharge(String register, int amount) {
-        String body = String.format("{\"amount\":%d}", amount);
-        executeOperation(body, "/registers/" + register + "/recharges", null, register, amount);
+        String body = String.format("{\"registerId\":\"%s\",\"amount\":%d}", register, amount);
+        executeOperation(body, "/operations/recharges", null, register, amount);
     }
 
     private void transfer(String source, String target, int amount) {
         String body = String
                 .format("{\"sourceRegisterId\":\"%s\",\"targetRegisterId\":\"%s\",\"amount\":%d}", source, target, amount);
-        executeOperation(body, "/transfers", source, target, amount);
+        executeOperation(body, "/operations/transfers", source, target, amount);
     }
 
     private void executeOperation(
