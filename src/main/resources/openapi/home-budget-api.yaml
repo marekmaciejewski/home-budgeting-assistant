@@ -262,8 +262,7 @@ components:
       properties:
         registerId:
           type: string
-          minLength: 1
-          pattern: ^.*\S.*$
+          x-extra-annotation: '@jakarta.validation.constraints.NotBlank'
           description: The target register identifier.
           example: Wallet
         amount:
@@ -283,14 +282,12 @@ components:
       properties:
         sourceRegisterId:
           type: string
-          minLength: 1
-          pattern: ^.*\S.*$
+          x-extra-annotation: '@jakarta.validation.constraints.NotBlank'
           description: The source register identifier.
           example: Wallet
         targetRegisterId:
           type: string
-          minLength: 1
-          pattern: ^.*\S.*$
+          x-extra-annotation: '@jakarta.validation.constraints.NotBlank'
           description: The target register identifier.
           example: Food expenses
         amount:

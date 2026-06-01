@@ -1,17 +1,27 @@
 package pl.mm.homebudget;
 
+import org.apache.commons.io.FilenameUtils;
 import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.MediaType;
-import org.springframework.test.json.JsonCompareMode;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import pl.mm.homebudget.api.dto.OperationResponse;
 
 import java.math.BigDecimal;
+import java.net.URI;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 
@@ -19,8 +29,21 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 @AutoConfigureWebTestClient
 class RegisterDbIT {
 
+    private static final Instant OPERATION_INSTANT = Instant.parse("2026-06-01T10:15:30Z");
+    private static final OffsetDateTime OPERATION_TIMESTAMP = OPERATION_INSTANT.atOffset(ZoneOffset.UTC);
+
     @Autowired
     private WebTestClient testClient;
+
+    @TestConfiguration
+    static class FixedClockConfiguration {
+
+        @Bean
+        @Primary
+        Clock testClock() {
+            return Clock.fixed(OPERATION_INSTANT, ZoneOffset.UTC);
+        }
+    }
 
     @TestFactory
     Stream<DynamicNode> demoScenario() {
@@ -92,16 +115,14 @@ class RegisterDbIT {
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().valueMatches("Location", "/operations/\\d+")
-                .expectBody()
-                .json(expectedOperationJson(sourceRegisterId, targetRegisterId, amount), JsonCompareMode.LENIENT)
+                .expectBody(OperationResponse.class)
                 .returnResult();
 
-        String location = result.getResponseHeaders().getLocation().toString();
-        testClient.get().uri(location)
-                .exchange()
-                .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.id").exists();
+        URI location = result.getResponseHeaders().getLocation();
+        long operationId = Long.parseLong(FilenameUtils.getName(location.getPath()));
+
+        OperationResponse createdOperation = result.getResponseBody();
+        assertOperation(createdOperation, operationId, sourceRegisterId, targetRegisterId, amount);
     }
 
     private void checkBalances(String balances) {
@@ -109,7 +130,7 @@ class RegisterDbIT {
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .json(balances, JsonCompareMode.LENIENT);
+                .json(balances);
     }
 
     private void checkRegister(String registerId, BigDecimal balance) {
@@ -122,22 +143,15 @@ class RegisterDbIT {
                           "id": "%s",
                           "balance": %s
                         }
-                        """.formatted(registerId, balance), JsonCompareMode.LENIENT);
+                        """.formatted(registerId, balance));
     }
 
     private void checkOperations(int expectedCount) {
         testClient.get().uri("/operations")
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody()
-                .jsonPath("$.length()").isEqualTo(expectedCount);
-    }
-
-    private String nullableJson(String value) {
-        if (value == null) {
-            return "null";
-        }
-        return "\"" + value + "\"";
+                .expectBodyList(OperationResponse.class)
+                .hasSize(expectedCount);
     }
 
     private String balancesJson(int wallet, int savings, int insurancePolicy, int foodExpenses) {
@@ -151,13 +165,18 @@ class RegisterDbIT {
                 """.formatted(wallet, savings, insurancePolicy, foodExpenses);
     }
 
-    private String expectedOperationJson(String sourceRegisterId, String targetRegisterId, int amount) {
-        return """
-                {
-                  "amount": %d,
-                  "sourceRegisterId": %s,
-                  "targetRegisterId": "%s"
-                }
-                """.formatted(amount, nullableJson(sourceRegisterId), targetRegisterId);
+    private void assertOperation(
+            OperationResponse operation,
+            long operationId,
+            String sourceRegisterId,
+            String targetRegisterId,
+            int amount) {
+        assertThat(operation)
+                .isNotNull()
+                .returns(operationId, OperationResponse::getId)
+                .returns(BigDecimal.valueOf(amount), OperationResponse::getAmount)
+                .returns(sourceRegisterId, OperationResponse::getSourceRegisterId)
+                .returns(targetRegisterId, OperationResponse::getTargetRegisterId)
+                .returns(OPERATION_TIMESTAMP, OperationResponse::getTimestamp);
     }
 }
