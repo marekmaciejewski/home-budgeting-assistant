@@ -57,6 +57,7 @@ pl.mm.homebudget
 - `api`: controllers and HTTP exception handling.
 - Generated API classes live under `target/generated-sources/openapi` in packages `pl.mm.homebudget.api` and `pl.mm.homebudget.api.dto`; do not edit generated sources or re-add handwritten DTOs.
 - OpenAPI Generator is configured with `useResponseEntity=false` to keep reactive signatures direct, for example `Flux<RegisterResponse>` instead of `Mono<ResponseEntity<Flux<RegisterResponse>>>`.
+- The YAML contract is the source of truth; do not post-process generated API mappings unless explicitly requested.
 - `application`: use-case orchestration, currently `RegisterService`.
 - `domain`: business exceptions.
 - `persistence`: R2DBC repositories, persistence entities, and persistence-to-API conversion.

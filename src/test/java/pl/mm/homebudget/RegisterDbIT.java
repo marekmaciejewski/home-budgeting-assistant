@@ -59,14 +59,14 @@ class RegisterDbIT {
         String balances = balancesJson(1000, 5000, 0, 0);
         return Stream.of(
                 dynamicTest("check initial balances", () -> checkBalances(balances)),
-                dynamicTest("check single register", () -> checkRegister("Wallet", new BigDecimal("1000.00"))),
+                dynamicTest("check single register", this::checkInitialWalletRegister),
                 dynamicTest("check initial operation history", () -> checkOperations(0)));
     }
 
     private Stream<DynamicNode> rechargeWallet() {
         String balances = balancesJson(3500, 5000, 0, 0);
         return Stream.of(
-                dynamicTest("recharge", () -> recharge("Wallet", 2500)),
+                dynamicTest("recharge", this::rechargeWalletWith2500),
                 dynamicTest("check balances", () -> checkBalances(balances)));
     }
 
@@ -92,9 +92,9 @@ class RegisterDbIT {
                 dynamicTest("check operation history", () -> checkOperations(4)));
     }
 
-    private void recharge(String register, int amount) {
-        String body = String.format("{\"registerId\":\"%s\",\"amount\":%d}", register, amount);
-        executeOperation(body, "/operations/recharges", null, register, amount);
+    private void rechargeWalletWith2500() {
+        String body = "{\"registerId\":\"Wallet\",\"amount\":2500}";
+        executeOperation(body, "/operations/recharges", null, "Wallet", 2500);
     }
 
     private void transfer(String source, String target, int amount) {
@@ -119,6 +119,7 @@ class RegisterDbIT {
                 .returnResult();
 
         URI location = result.getResponseHeaders().getLocation();
+        //noinspection DataFlowIssue
         long operationId = Long.parseLong(FilenameUtils.getName(location.getPath()));
 
         OperationResponse createdOperation = result.getResponseBody();
@@ -133,17 +134,17 @@ class RegisterDbIT {
                 .json(balances);
     }
 
-    private void checkRegister(String registerId, BigDecimal balance) {
-        testClient.get().uri("/registers/{registerId}", registerId)
+    private void checkInitialWalletRegister() {
+        testClient.get().uri("/registers/{registerId}", "Wallet")
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
                 .json("""
                         {
-                          "id": "%s",
-                          "balance": %s
+                          "id": "Wallet",
+                          "balance": 1000.00
                         }
-                        """.formatted(registerId, balance));
+                        """);
     }
 
     private void checkOperations(int expectedCount) {

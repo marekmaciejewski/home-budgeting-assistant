@@ -19,7 +19,9 @@
         <jacocoArgLine></jacocoArgLine>
         <lombok.version>1.18.46</lombok.version>
         <openapi-generator.version>7.6.0</openapi-generator.version>
-        <test.jvm.args>-Xshare:off -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</test.jvm.args>
+        <test.jvm.args>-Xshare:off
+            -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
+        </test.jvm.args>
     </properties>
 
     <dependencies>

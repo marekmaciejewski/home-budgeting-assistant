@@ -15,9 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple3;
 
 import java.math.BigDecimal;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -34,10 +34,16 @@ public class RegisterService {
     }
 
     private Mono<Operation> applyRecharge(String registerId, BigDecimal amount) {
-        return Mono.just(amount)
-                .map(converter::createOperation)
-                .flatMap(recharge -> getActiveRegister(registerId)
-                        .flatMap(target -> saveRecharge(target, recharge)));
+        return Mono.zip(
+                        getActiveRegister(registerId),
+                        Mono.fromSupplier(() -> converter.createOperation(amount)))
+                .map(converter::applyRechargeToRegister)
+                .flatMap(inputs -> saveRecharge(inputs.getT1(), inputs.getT2()));
+    }
+
+    private Mono<Operation> saveRecharge(Register target, Operation recharge) {
+        return registerRepository.save(target)
+                .then(operationRepository.save(recharge));
     }
 
     @Transactional
@@ -47,37 +53,37 @@ public class RegisterService {
     }
 
     private Mono<Operation> applyTransfer(String sourceRegister, String targetRegister, BigDecimal amount) {
-        if (Objects.equals(sourceRegister, targetRegister)) {
-            return Mono.error(new InvalidTransferException("source and target register must be different"));
-        }
-        return Mono.just(amount)
-                .map(converter::createOperation)
-                .flatMap(transfer -> getActiveRegister(sourceRegister)
-                        .flatMap(source -> getActiveRegister(targetRegister)
-                                .flatMap(target -> saveTransfer(source, target, transfer))));
+        return Mono.zip(
+                        getActiveRegister(sourceRegister),
+                        getActiveRegister(targetRegister),
+                        Mono.fromSupplier(() -> converter.createOperation(amount)))
+                .doFirst(() -> validateDifferentTransferRegisters(sourceRegister, targetRegister))
+                .map(this::validateSourceRegisterHasSufficientBalance)
+                .map(converter::applyTransferToRegisters)
+                .flatMap(inputs -> saveTransfer(inputs.getT1(), inputs.getT2(), inputs.getT3()));
     }
 
-    private Mono<Operation> saveRecharge(Register target, Operation recharge) {
-        converter.updateTarget(target, recharge);
-        return registerRepository.save(target)
-                .then(operationRepository.save(recharge));
+    private void validateDifferentTransferRegisters(String sourceRegister, String targetRegister) {
+        if (sourceRegister.equals(targetRegister)) {
+            throw new InvalidTransferException("source and target register must be different");
+        }
+    }
+
+    private Tuple3<Register, Register, Operation> validateSourceRegisterHasSufficientBalance(
+            Tuple3<Register, Register, Operation> inputs) {
+        Register source = inputs.getT1();
+        Operation transfer = inputs.getT3();
+        if (source.getBalance().compareTo(transfer.getAmount()) < 0) {
+            throw new InvalidTransferException(source.getId() + " register has insufficient balance");
+        }
+        return inputs;
     }
 
     private Mono<Operation> saveTransfer(Register source, Register target, Operation transfer) {
-        if (source.getBalance().compareTo(transfer.getAmount()) < 0) {
-            return Mono.error(new InvalidTransferException(source.getId() + " register has insufficient balance"));
-        }
-        converter.updateSource(source, transfer);
-        converter.updateTarget(target, transfer);
-        return registerRepository.save(source)
-                .then(registerRepository.save(target))
+        return Mono.when(
+                        registerRepository.save(source),
+                        registerRepository.save(target))
                 .then(operationRepository.save(transfer));
-    }
-
-    private Mono<Register> getActiveRegister(String registerId) {
-        return registerRepository.findById(registerId)
-                .filter(Register::isActive)
-                .switchIfEmpty(Mono.error(new RegisterNotFoundException(registerId + " register not found or not active")));
     }
 
     public Flux<RegisterResponse> getRegisters() {
@@ -89,6 +95,12 @@ public class RegisterService {
     public Mono<RegisterResponse> getRegister(String registerId) {
         return getActiveRegister(registerId)
                 .map(converter::toResponse);
+    }
+
+    private Mono<Register> getActiveRegister(String registerId) {
+        return registerRepository.findById(registerId)
+                .filter(Register::isActive)
+                .switchIfEmpty(Mono.error(new RegisterNotFoundException(registerId + " register not found or not active")));
     }
 
     public Flux<OperationResponse> getOperations() {

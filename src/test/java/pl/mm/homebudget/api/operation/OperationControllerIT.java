@@ -26,16 +26,16 @@ class OperationControllerIT {
 
     @ParameterizedTest
     @CsvSource(useHeadersInDisplayName = true, nullValues = "NULL", textBlock = """
-            registerId, amount,             expectedField, expectedMessage,                                                 secondExpectedField, secondExpectedMessage
-            NULL,       2500,               registerId,    must not be null,                                               registerId,          must not be blank
-            '',         2500,               registerId,    must not be blank,                                              NULL,                NULL
-            '   ',      2500,               registerId,    must not be blank,                                              NULL,                NULL
-            Wallet,     NULL,               amount,        must not be null,                                               NULL,                NULL
-            Wallet,     0,                  amount,        must be greater than 0,                                         NULL,                NULL
-            Wallet,     -2500,              amount,        must be greater than 0,                                         NULL,                NULL
-            Wallet,     1.001,              amount,        must have no more than 17 integer digits and 2 decimal places,  NULL,                NULL
-            Wallet,     1.230,              amount,        must have no more than 17 integer digits and 2 decimal places,  NULL,                NULL
-            Wallet,     100000000000000000, amount,        must have no more than 17 integer digits and 2 decimal places,  NULL,                NULL
+            registerId, amount,             expectedField, expectedMessage,                                               secondExpectedField, secondExpectedMessage
+            NULL,       2500,               registerId,    must not be null,                                              registerId,          must not be blank
+            '',         2500,               registerId,    must not be blank,                                             NULL,                NULL
+            '   ',      2500,               registerId,    must not be blank,                                             NULL,                NULL
+            Wallet,     NULL,               amount,        must not be null,                                              NULL,                NULL
+            Wallet,     0,                  amount,        must be greater than 0,                                        NULL,                NULL
+            Wallet,     -2500,              amount,        must be greater than 0,                                        NULL,                NULL
+            Wallet,     1.001,              amount,        must have no more than 17 integer digits and 2 decimal places, NULL,                NULL
+            Wallet,     1.230,              amount,        must have no more than 17 integer digits and 2 decimal places, NULL,                NULL
+            Wallet,     100000000000000000, amount,        must have no more than 17 integer digits and 2 decimal places, NULL,                NULL
             """)
     void createRecharge_returnsBadRequest(
             String registerId,
@@ -65,17 +65,17 @@ class OperationControllerIT {
 
     @ParameterizedTest
     @CsvSource(useHeadersInDisplayName = true, nullValues = "NULL", textBlock = """
-            sourceRegisterId, targetRegisterId, amount,             expectedField,   expectedMessage,                                                 secondExpectedField, secondExpectedMessage
-            NULL,             Food expenses,    1500,               sourceRegisterId, must not be null,                                               sourceRegisterId,    must not be blank
-            '',               Food expenses,    1500,               sourceRegisterId, must not be blank,                                              NULL,                NULL
-            Wallet,           NULL,             1500,               targetRegisterId, must not be null,                                               targetRegisterId,    must not be blank
-            Wallet,           '',               1500,               targetRegisterId, must not be blank,                                              NULL,                NULL
-            Wallet,           Food expenses,    NULL,               amount,           must not be null,                                               NULL,                NULL
-            Wallet,           Food expenses,    0,                  amount,           must be greater than 0,                                         NULL,                NULL
-            Wallet,           Food expenses,    -1500,              amount,           must be greater than 0,                                         NULL,                NULL
-            Wallet,           Food expenses,    1.001,              amount,           must have no more than 17 integer digits and 2 decimal places,  NULL,                NULL
-            Wallet,           Food expenses,    1.230,              amount,           must have no more than 17 integer digits and 2 decimal places,  NULL,                NULL
-            Wallet,           Food expenses,    100000000000000000, amount,           must have no more than 17 integer digits and 2 decimal places,  NULL,                NULL
+            sourceRegisterId, targetRegisterId, amount,             expectedField,    expectedMessage,                                               secondExpectedField, secondExpectedMessage
+            NULL,             Food expenses,    1500,               sourceRegisterId, must not be null,                                              sourceRegisterId,    must not be blank
+            '',               Food expenses,    1500,               sourceRegisterId, must not be blank,                                             NULL,                NULL
+            Wallet,           NULL,             1500,               targetRegisterId, must not be null,                                              targetRegisterId,    must not be blank
+            Wallet,           '',               1500,               targetRegisterId, must not be blank,                                             NULL,                NULL
+            Wallet,           Food expenses,    NULL,               amount,           must not be null,                                              NULL,                NULL
+            Wallet,           Food expenses,    0,                  amount,           must be greater than 0,                                        NULL,                NULL
+            Wallet,           Food expenses,    -1500,              amount,           must be greater than 0,                                        NULL,                NULL
+            Wallet,           Food expenses,    1.001,              amount,           must have no more than 17 integer digits and 2 decimal places, NULL,                NULL
+            Wallet,           Food expenses,    1.230,              amount,           must have no more than 17 integer digits and 2 decimal places, NULL,                NULL
+            Wallet,           Food expenses,    100000000000000000, amount,           must have no more than 17 integer digits and 2 decimal places, NULL,                NULL
             """)
     void createTransfer_returnsBadRequest(
             String sourceRegisterId,

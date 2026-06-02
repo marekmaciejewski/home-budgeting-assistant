@@ -6,6 +6,12 @@ Date: 2026-05-26
 
 Move `home-budgeting-assistant` from Spring Boot 2.5.1 to Spring Boot 4 while keeping the application reactive with WebFlux and replacing JPA/H2 access with R2DBC/H2 access.
 
+## Main Migration Challenge
+
+The most important challenge was not only the technical upgrade itself, but the working constraint: the code was not
+changed manually during the migration. The migration was driven by instructing AI to make each change, then reviewing,
+correcting, and iterating through further instructions until the application, tests, and generated API contract aligned.
+
 ## Current State
 
 - Spring Boot parent: `4.0.6`.
@@ -116,7 +122,7 @@ Current result:
 
 - Build: success.
 - Unit tests: no tests matched the current Surefire naming pattern.
-- Integration tests: 38 passed.
+- Integration tests: 41 passed.
 
 Additional checks performed:
 
@@ -128,6 +134,11 @@ Additional checks performed:
 ## Remaining Warnings
 
 - Springdoc logs that `/v3/api-docs` and `/swagger-ui.html` are enabled by default. This is expected unless those endpoints should be disabled in a production profile.
+- OpenAPI Generator 7.6.0 flattens response media types into generated Spring `@RequestMapping(produces = ...)`
+  declarations. Because error responses use `application/problem+json`, some generated success mappings may also
+  advertise `application/problem+json` even though the checked-in OpenAPI YAML correctly documents success responses as
+  `application/json` and errors as `application/problem+json`. This is accepted for now to avoid adding a custom
+  generator template or an extra generated-source post-processing plugin only for media type narrowing.
 
 ## Completed Follow-Up Hardening
 
