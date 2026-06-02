@@ -24,6 +24,15 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RegisterResponse"
+              example:
+                - id: Wallet
+                  balance: 1000.00
+                - id: Savings
+                  balance: 5000.00
+                - id: Insurance policy
+                  balance: 0.00
+                - id: Food expenses
+                  balance: 0.00
   /registers/{registerId}:
     get:
       tags:
@@ -39,6 +48,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RegisterResponse"
+              example:
+                id: Wallet
+                balance: 1000.00
         "404":
           $ref: "#/components/responses/NotFound"
   /operations:
@@ -56,6 +68,17 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/OperationResponse"
+              example:
+                - id: 1
+                  timestamp: "2026-06-01T10:15:30Z"
+                  amount: 2500.00
+                  sourceRegisterId: null
+                  targetRegisterId: Wallet
+                - id: 2
+                  timestamp: "2026-06-01T10:15:30Z"
+                  amount: 1500.00
+                  sourceRegisterId: Wallet
+                  targetRegisterId: Food expenses
   /operations/recharges:
     post:
       tags:
@@ -81,6 +104,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OperationResponse"
+              example:
+                id: 1
+                timestamp: "2026-06-01T10:15:30Z"
+                amount: 2500.00
+                sourceRegisterId: null
+                targetRegisterId: Wallet
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -110,6 +139,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OperationResponse"
+              example:
+                id: 2
+                timestamp: "2026-06-01T10:15:30Z"
+                amount: 1500.00
+                sourceRegisterId: Wallet
+                targetRegisterId: Food expenses
         "400":
           $ref: "#/components/responses/BadRequest"
         "404":
@@ -136,6 +171,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OperationResponse"
+              example:
+                id: 2
+                timestamp: "2026-06-01T10:15:30Z"
+                amount: 1500.00
+                sourceRegisterId: Wallet
+                targetRegisterId: Food expenses
         "404":
           $ref: "#/components/responses/NotFound"
 components:
@@ -155,12 +196,52 @@ components:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            validationFailure:
+              summary: Request validation failed.
+              value:
+                title: Bad Request
+                status: 400
+                detail: Request validation failed
+                instance: /operations/recharges
+                errors:
+                  - field: amount
+                    message: must be greater than 0
+            invalidTransfer:
+              summary: Business rule violation.
+              value:
+                title: Bad Request
+                status: 400
+                detail: source and target register must be different
+                instance: /operations/transfers
+            malformedBody:
+              summary: Malformed request body.
+              value:
+                title: Bad Request
+                status: 400
+                detail: Request body is invalid
+                instance: /operations/transfers
     NotFound:
       description: Resource Not Found
       content:
         application/problem+json:
           schema:
             $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            registerNotFound:
+              summary: Register not found or inactive.
+              value:
+                title: Not Found
+                status: 404
+                detail: test register not found or not active
+                instance: /operations/recharges
+            operationNotFound:
+              summary: Operation not found.
+              value:
+                title: Not Found
+                status: 404
+                detail: 999 operation not found
+                instance: /operations/999
   schemas:
     ProblemDetail:
       description: Problem detail response.
@@ -169,20 +250,15 @@ components:
         type:
           type: string
           format: uri
-          example: about:blank
         title:
           type: string
-          example: Bad Request
         status:
           type: integer
           format: int32
-          example: 400
         detail:
           type: string
-          example: source and target register must be different
         instance:
           type: string
-          example: /operations/transfers
         errors:
           type: array
           description: Field validation errors, present for validation failures.
@@ -236,6 +312,7 @@ components:
           type: string
           format: date-time
           description: The operation timestamp.
+          example: "2026-06-01T10:15:30Z"
         amount:
           type: number
           minimum: 0
