@@ -1,0 +1,381 @@
+openapi: 3.0.3
+info:
+  title: Home Budget API
+  version: 1.0.0
+  description: Reactive API for registers, recharges, transfers, and balance-changing operations.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: registers
+  - name: operations
+paths:
+  /registers:
+    get:
+      tags:
+        - registers
+      operationId: getRegisters
+      summary: Get all active registers.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegisterResponse"
+              example:
+                - id: Wallet
+                  balance: 1000.00
+                - id: Savings
+                  balance: 5000.00
+                - id: Insurance policy
+                  balance: 0.00
+                - id: Food expenses
+                  balance: 0.00
+  /registers/{registerId}:
+    get:
+      tags:
+        - registers
+      operationId: getRegister
+      summary: Get an active register by id.
+      parameters:
+        - $ref: "#/components/parameters/RegisterId"
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+              example:
+                id: Wallet
+                balance: 1000.00
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /operations:
+    get:
+      tags:
+        - operations
+      operationId: getOperations
+      summary: Get all balance operations.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OperationResponse"
+              example:
+                - id: 1
+                  timestamp: "2026-06-01T10:15:30Z"
+                  amount: 2500.00
+                  sourceRegisterId: null
+                  targetRegisterId: Wallet
+                - id: 2
+                  timestamp: "2026-06-01T10:15:30Z"
+                  amount: 1500.00
+                  sourceRegisterId: Wallet
+                  targetRegisterId: Food expenses
+  /operations/recharges:
+    post:
+      tags:
+        - operations
+      operationId: createRecharge
+      summary: Create a recharge operation for a register.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RechargeCommand"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: Created operation URI.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+              example:
+                id: 1
+                timestamp: "2026-06-01T10:15:30Z"
+                amount: 2500.00
+                sourceRegisterId: null
+                targetRegisterId: Wallet
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /operations/transfers:
+    post:
+      tags:
+        - operations
+      operationId: createTransfer
+      summary: Create a transfer operation between registers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferCommand"
+      responses:
+        "201":
+          description: Created
+          headers:
+            Location:
+              description: Created operation URI.
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+              example:
+                id: 2
+                timestamp: "2026-06-01T10:15:30Z"
+                amount: 1500.00
+                sourceRegisterId: Wallet
+                targetRegisterId: Food expenses
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /operations/{operationId}:
+    get:
+      tags:
+        - operations
+      operationId: getOperation
+      summary: Get a balance operation by id.
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          description: The operation identifier.
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationResponse"
+              example:
+                id: 2
+                timestamp: "2026-06-01T10:15:30Z"
+                amount: 1500.00
+                sourceRegisterId: Wallet
+                targetRegisterId: Food expenses
+        "404":
+          $ref: "#/components/responses/NotFound"
+components:
+  parameters:
+    RegisterId:
+      name: registerId
+      in: path
+      required: true
+      description: The register identifier. Register IDs are currently register names.
+      schema:
+        type: string
+        example: Wallet
+  responses:
+    BadRequest:
+      description: Bad Request
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            validationFailure:
+              summary: Request validation failed.
+              value:
+                title: Bad Request
+                status: 400
+                detail: Request validation failed
+                instance: /operations/recharges
+                errors:
+                  - field: amount
+                    message: must be greater than 0
+            invalidTransfer:
+              summary: Business rule violation.
+              value:
+                title: Bad Request
+                status: 400
+                detail: source and target register must be different
+                instance: /operations/transfers
+            malformedBody:
+              summary: Malformed request body.
+              value:
+                title: Bad Request
+                status: 400
+                detail: Request body is invalid
+                instance: /operations/transfers
+    NotFound:
+      description: Resource Not Found
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            registerNotFound:
+              summary: Register not found or inactive.
+              value:
+                title: Not Found
+                status: 404
+                detail: test register not found or not active
+                instance: /operations/recharges
+            operationNotFound:
+              summary: Operation not found.
+              value:
+                title: Not Found
+                status: 404
+                detail: 999 operation not found
+                instance: /operations/999
+  schemas:
+    ProblemDetail:
+      description: Problem detail response.
+      type: object
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+        errors:
+          type: array
+          description: Field validation errors, present for validation failures.
+          items:
+            $ref: "#/components/schemas/ValidationError"
+      required:
+        - title
+        - status
+        - detail
+        - instance
+    ValidationError:
+      description: Field validation error.
+      type: object
+      properties:
+        field:
+          type: string
+          example: amount
+        message:
+          type: string
+          example: must be greater than 0
+      required:
+        - field
+        - message
+    RegisterResponse:
+      description: Register
+      type: object
+      properties:
+        id:
+          type: string
+          description: The register identifier.
+          example: Wallet
+        balance:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+          description: The current register balance as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 1000.00
+      required:
+        - id
+        - balance
+    OperationResponse:
+      description: Balance operation
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The operation identifier.
+          example: 1
+        timestamp:
+          type: string
+          format: date-time
+          description: The operation timestamp.
+          example: "2026-06-01T10:15:30Z"
+        amount:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+          description: The operation amount as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 1500.00
+        sourceRegisterId:
+          type: string
+          nullable: true
+          description: The source register identifier.
+          example: Wallet
+        targetRegisterId:
+          type: string
+          nullable: true
+          description: The target register identifier.
+          example: Food expenses
+      required:
+        - id
+        - timestamp
+        - amount
+    RechargeCommand:
+      description: Recharge command
+      type: object
+      properties:
+        registerId:
+          type: string
+          x-extra-annotation: '@jakarta.validation.constraints.NotBlank'
+          description: The target register identifier.
+          example: Wallet
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          multipleOf: 0.01
+          x-extra-annotation: '@jakarta.validation.constraints.Digits(integer = 17, fraction = 2, message = "must have no more than 17 integer digits and 2 decimal places")'
+          description: The amount to recharge with, as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 2500.00
+      required:
+        - registerId
+        - amount
+    TransferCommand:
+      description: Transfer command
+      type: object
+      properties:
+        sourceRegisterId:
+          type: string
+          x-extra-annotation: '@jakarta.validation.constraints.NotBlank'
+          description: The source register identifier.
+          example: Wallet
+        targetRegisterId:
+          type: string
+          x-extra-annotation: '@jakarta.validation.constraints.NotBlank'
+          description: The target register identifier.
+          example: Food expenses
+        amount:
+          type: number
+          minimum: 0
+          exclusiveMinimum: true
+          multipleOf: 0.01
+          x-extra-annotation: '@jakarta.validation.constraints.Digits(integer = 17, fraction = 2, message = "must have no more than 17 integer digits and 2 decimal places")'
+          description: The amount to transfer, as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 1500.00
+      required:
+        - sourceRegisterId
+        - targetRegisterId
+        - amount

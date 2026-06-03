@@ -1,18 +1,21 @@
-<style>
-    ol ol { list-style-type: lower-alpha; }
-</style>
-
 # home-budgeting-assistant
 
 ## Preparation
 
-Before the application can be started a directory for an H2 database must be provided in `application.properties` so the
-whole url will look similar to the example below:
-`spring.datasource.url=jdbc:h2:file:C:/Users/you/foo/bar/db/registers;DB_CLOSE_ON_EXIT=FALSE`
+Before the application can be started, an H2 database file path must be provided in `application.yml` for both the R2DBC
+application connection and the JDBC Liquibase migration connection. The URLs should point at the same database file:
+
+```yaml
+spring:
+  r2dbc:
+    url: "r2dbc:h2:file:///C:/Users/you/foo/bar/db/registers;DB_CLOSE_ON_EXIT=FALSE"
+  liquibase:
+    url: "jdbc:h2:file:C:/Users/you/foo/bar/db/registers;DB_CLOSE_ON_EXIT=FALSE"
+```
 
 ## Instruction
 
-The app can be run from IDE or maven plugin: `mvn spring-boot:run`.
+The app can be run from IDE or maven plugin: `.\mvnw.cmd spring-boot:run`.
 The DB will be loaded with initial state of following registers:
 
 | register         | balance |
@@ -26,42 +29,69 @@ To start from beginning simply stop the app and delete DB file in the provided e
 
 ## Interact
 
-The app exposes three endpoints on the default ip address:
+The app exposes the following primary API on the default host:
 
-| method | url                   | description                |
-|--------|-----------------------|----------------------------|
-| POST   | `/registers/recharge` | recharge register          |
-| POST   | `/registers/transfer` | transfer between registers |
-| GET    | `/registers`          | balances printout          |
+| method | url                                  | description                         |
+|--------|--------------------------------------|-------------------------------------|
+| GET    | `/registers`                         | get all active registers            |
+| GET    | `/registers/{registerId}`            | get one active register             |
+| GET    | `/operations`                        | get all balance-changing operations |
+| GET    | `/operations/{operationId}`          | get one balance-changing operation  |
+| POST   | `/operations/recharges`              | create a recharge operation         |
+| POST   | `/operations/transfers`              | create a transfer operation         |
+
+Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
 The details of the input/output model are available on the swagger ui url:
 `localhost:8080/swagger-ui.html`
 This is also the easiest way to interact with the app.
 
+The checked-in OpenAPI contract lives in `src/main/resources/openapi/home-budget-api.yaml`.
+Maven generates the Spring WebFlux API interfaces and request/response DTOs from that file during the build.
+
 ## Sample requests
 
-### /recharge
+### POST /operations/recharges
 
 ```json
 {
-  "registerName": "Wallet",
+  "registerId": "Wallet",
   "amount": 2500
 }
 ```
 
-### /transfer
+### POST /operations/transfers
 
 ```json
 {
-  "sourceRegister": "Wallet",
-  "targetRegister": "Food expenses",
+  "sourceRegisterId": "Wallet",
+  "targetRegisterId": "Food expenses",
   "amount": 1500
 }
 ```
 
+### GET /registers
+
+```json
+[
+  {
+    "id": "Wallet",
+    "balance": 1000.00
+  },
+  {
+    "id": "Savings",
+    "balance": 5000.00
+  }
+]
+```
+
 ## Tests
 
-To run all the unit and integration tests run command: `mvn clean verify`.
+To run all the unit and integration tests run command: `.\mvnw.cmd clean verify`.
+
+The same command generates a JaCoCo coverage report at `target/site/jacoco/index.html`.
+In GitHub Actions, the `Coverage` workflow shows a coverage table in the job summary and uploads the full HTML report as
+the `jacoco-coverage-report` artifact.
 
 ## The Original Assignment
 
@@ -77,11 +107,11 @@ for the upcoming demo.
 ### The prototype
 
 Planned home budgeting assistant is meant to operate on so-called registers. A register is conceptually similar to a
-bank account – one can transfer money to and from it, and both of these operations directly affect its balance. The
+bank account - one can transfer money to and from it, and both of these operations directly affect its balance. The
 system is supposed to keep track of multiple registers and allow transferring funds between them. This means an end user
-can for example define registers: “wallet”, “savings”, “food expenses”, “car maintenance” and be able to track their
+can for example define registers: "wallet", "savings", "food expenses", "car maintenance" and be able to track their
 spending by transferring amounts between them. In the future it would be possible to keep history of individual
-transfers, archive transfers and reset balance of registers – for now, however, this is out of scope and the business
+transfers, archive transfers and reset balance of registers - for now, however, this is out of scope and the business
 has pinpointed what they expect the app to be capable of for the sake of a successful presentation.
 
 ### Business requirements
@@ -89,16 +119,16 @@ has pinpointed what they expect the app to be capable of for the sake of a succe
 Business deems the following aspects as must-haves:
 
 1. A demo environment with the following registers already existing:
-    1. “Wallet” register with a balance of 1000
-    2. “Savings” register with a balance of 5000
-    3. “Insurance policy” register with a balance of 0
-    4. “Food expenses” register with a balance of 0
+    1. "Wallet" register with a balance of 1000
+    2. "Savings" register with a balance of 5000
+    3. "Insurance policy" register with a balance of 0
+    4. "Food expenses" register with a balance of 0
 2. A deployed application which needs to expose the following operations:
-    1. Recharge an existing register with given amount – the register’s balance should then be updated accordingly with
+    1. Recharge an existing register with given amount - the register's balance should then be updated accordingly with
        the requested amount added
-    2. Transfer given amount between two existing registers – this means that given amount should be subtracted from
-       source register’s balance and added to destination register’s balance
-    3. Get current balance of all registers – this should simply inform about current balance of all existing registers
+    2. Transfer given amount between two existing registers - this means that given amount should be subtracted from
+       source register's balance and added to destination register's balance
+    3. Get current balance of all registers - this should simply inform about current balance of all existing registers
 3. Data persistence: the application should persist balance of each register each time it is updated and even in case
    the whole system is turned off, all registers should have their balances set to previous values upon its restart.
 
@@ -117,14 +147,14 @@ The following guidelines have to be taken into account:
 The following scenario demonstrates what is the expected behaviour of the system. It assumes we are running a fresh
 demo (with all predefined registers existing and having corresponding balances):
 
-1. A recharge is executed for the “Wallet” register with an amount of 2500.This should increase the register’s balance
+1. A recharge is executed for the "Wallet" register with an amount of 2500. This should increase the register's balance
    to 3500.
-2. A transfer of 1500 from “Wallet” to “Food expenses” registry is executed. This should bring “Wallet” balance to 2000
-   and “Food expenses” balance to 1500.
-3. A transfer of 500 from “Savings” to “Insurance policy” registry is executed. This should bring “Savings” balance to
-   4500 and “Insurance policy” balance to 500.
-4. A transfer of 1000 from “Wallet” to “Savings” registry is executed. This should bring “Wallet” balance to 1000 and
-   “Savings” balance to 5500.
+2. A transfer of 1500 from "Wallet" to "Food expenses" registry is executed. This should bring "Wallet" balance to 2000
+   and "Food expenses" balance to 1500.
+3. A transfer of 500 from "Savings" to "Insurance policy" registry is executed. This should bring "Savings" balance to
+   4500 and "Insurance policy" balance to 500.
+4. A transfer of 1000 from "Wallet" to "Savings" registry is executed. This should bring "Wallet" balance to 1000 and
+   "Savings" balance to 5500.
 5. Balance info on all registries is executed: this should print the list of all registries accompanied by their
    balance, for example:
    ```text
