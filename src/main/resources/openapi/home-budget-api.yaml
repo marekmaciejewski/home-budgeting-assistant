@@ -8,6 +8,7 @@ servers:
 tags:
   - name: registers
   - name: operations
+  - name: demo
 paths:
   /registers:
     get:
@@ -179,6 +180,31 @@ paths:
                 targetRegisterId: Food expenses
         "404":
           $ref: "#/components/responses/NotFound"
+  /demo/reset:
+    post:
+      tags:
+        - demo
+      operationId: resetDemo
+      summary: Reset the public demo state.
+      description: Available only when the backend runs with the demo profile. Clears operation history and restores the seed active registers for the public demo.
+      responses:
+        "200":
+          description: Demo state reset.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegisterResponse"
+              example:
+                - id: Wallet
+                  balance: 1000.00
+                - id: Savings
+                  balance: 5000.00
+                - id: Insurance policy
+                  balance: 0.00
+                - id: Food expenses
+                  balance: 0.00
 components:
   parameters:
     RegisterId:

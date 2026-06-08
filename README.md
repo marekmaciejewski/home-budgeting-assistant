@@ -2,8 +2,11 @@
 
 ## Preparation
 
-Before the application can be started, an H2 database file path must be provided in `application.yml` for both the R2DBC
-application connection and the JDBC Liquibase migration connection. The URLs should point at the same database file:
+Use JDK 21 when building or running the application.
+
+The default profile keeps the local file-backed H2 setup. Before the application can be started in the default profile,
+an H2 database file path must be provided in `application.yml` for both the R2DBC application connection and the JDBC
+Liquibase migration connection. The URLs should point at the same database file:
 
 ```yaml
 spring:
@@ -12,6 +15,9 @@ spring:
   liquibase:
     url: "jdbc:h2:file:C:/Users/you/foo/bar/db/registers;DB_CLOSE_ON_EXIT=FALSE"
 ```
+
+The server port is configured as `server.port=${PORT:8080}`, so free hosting providers can inject their assigned port
+with the `PORT` environment variable.
 
 ## Instruction
 
@@ -25,7 +31,40 @@ The DB will be loaded with initial state of following registers:
 | Insurance policy | 0       |
 | Food expenses    | 0       |
 
-To start from beginning simply stop the app and delete DB file in the provided earlier directory.
+In the default file-backed profile, deleting the local DB file gives a fully fresh database on the next start.
+
+## Demo profile
+
+For free demo hosting, run with the `demo` profile:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE='demo'
+.\mvnw.cmd spring-boot:run
+```
+
+The `demo` profile uses a named in-memory H2 database shared by Liquibase JDBC and R2DBC:
+
+```yaml
+spring:
+  r2dbc:
+    url: "r2dbc:h2:mem:///demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+  liquibase:
+    url: "jdbc:h2:mem:demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+```
+
+This is intentionally ephemeral: data is reset when the backend process restarts, and users can also reset it with
+`POST /demo/reset`. The reset endpoint and its supporting service are only active when the `demo` profile is enabled.
+
+Deployment-relevant environment variables:
+
+| variable                   | example                                      | purpose                                                |
+|----------------------------|----------------------------------------------|--------------------------------------------------------|
+| `SPRING_PROFILES_ACTIVE`   | `demo`                                       | enables ephemeral demo H2 storage                      |
+| `PORT`                     | provided by Render/Koyeb                     | host-provided server port, defaults to `8080` locally  |
+| `APP_CORS_ALLOWED_ORIGINS` | `https://your-user.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS |
+
+By default, CORS allows local Vite development origins: `http://localhost:5173` and `http://127.0.0.1:5173`. Add the
+GitHub Pages origin through `APP_CORS_ALLOWED_ORIGINS` before exposing the hosted frontend.
 
 ## Interact
 
@@ -39,6 +78,7 @@ The app exposes the following primary API on the default host:
 | GET    | `/operations/{operationId}`          | get one balance-changing operation  |
 | POST   | `/operations/recharges`              | create a recharge operation         |
 | POST   | `/operations/transfers`              | create a transfer operation         |
+| POST   | `/demo/reset`                        | reset public demo state; demo profile only |
 
 Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
@@ -81,6 +121,32 @@ Maven generates the Spring WebFlux API interfaces and request/response DTOs from
   {
     "id": "Savings",
     "balance": 5000.00
+  }
+]
+```
+
+### POST /demo/reset
+
+Available only with `SPRING_PROFILES_ACTIVE=demo`. Clears operation history, restores the seed registers, and returns
+the restored register list:
+
+```json
+[
+  {
+    "id": "Wallet",
+    "balance": 1000.00
+  },
+  {
+    "id": "Savings",
+    "balance": 5000.00
+  },
+  {
+    "id": "Insurance policy",
+    "balance": 0.00
+  },
+  {
+    "id": "Food expenses",
+    "balance": 0.00
   }
 ]
 ```
