@@ -66,6 +66,17 @@ Deployment-relevant environment variables:
 By default, CORS allows local Vite development origins: `http://localhost:5173` and `http://127.0.0.1:5173`. Add the
 GitHub Pages origin through `APP_CORS_ALLOWED_ORIGINS` before exposing the hosted frontend.
 
+## Live demo
+
+- API base URL: `https://home-budgeting-assistant.onrender.com`
+- Swagger UI: `https://home-budgeting-assistant.onrender.com/swagger-ui/index.html`
+
+The hosted backend runs on Render Free. Render can spin down idle services, so the first request after inactivity may
+take about a minute before the app responds.
+
+The hosted backend uses the `demo` profile with ephemeral in-memory H2. Restart, redeploy, or idle spin-down starts from
+the seeded state, and `POST /demo/reset` restores the seed data during a running demo.
+
 ## Interact
 
 The app exposes the following primary API on the default host:
@@ -82,9 +93,8 @@ The app exposes the following primary API on the default host:
 
 Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
-The details of the input/output model are available on the swagger ui url:
-`localhost:8080/swagger-ui.html`
-This is also the easiest way to interact with the app.
+The details of the input/output model are available through Swagger UI. Locally, open
+`http://localhost:8080/swagger-ui.html`; for the hosted backend, use the live demo link above.
 
 The checked-in OpenAPI contract lives in `src/main/resources/openapi/home-budget-api.yaml`.
 Maven generates the Spring WebFlux API interfaces and request/response DTOs from that file during the build.
