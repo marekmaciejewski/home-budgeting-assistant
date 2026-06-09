@@ -6,4 +6,4 @@ spring:
 
 app:
   cors:
-    allowed-origins: http://localhost:5173
+    allowed-origins: https://marekmaciejewski.github.io,http://localhost:5173

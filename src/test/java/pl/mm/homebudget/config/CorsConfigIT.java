@@ -9,13 +9,12 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-        properties = "app.cors.allowed-origins=http://localhost:5173")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 class CorsConfigIT {
 
     private static final String FRONTEND_ORIGIN = "http://localhost:5173";
+    private static final String GITHUB_PAGES_ORIGIN = "https://marekmaciejewski.github.io";
 
     @Autowired
     private WebTestClient testClient;
@@ -32,6 +31,16 @@ class CorsConfigIT {
                     assertThat(methods).contains("GET");
                     assertThat(methods).contains("POST");
                 });
+    }
+
+    @Test
+    void preflight_allowsGitHubPagesOrigin() {
+        testClient.options().uri("/registers")
+                .header(HttpHeaders.ORIGIN, GITHUB_PAGES_ORIGIN)
+                .header(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD, "GET")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().valueEquals(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, GITHUB_PAGES_ORIGIN);
     }
 
     @Test

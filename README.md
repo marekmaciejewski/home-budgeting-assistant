@@ -61,21 +61,45 @@ Deployment-relevant environment variables:
 |----------------------------|----------------------------------------------|--------------------------------------------------------|
 | `SPRING_PROFILES_ACTIVE`   | `demo`                                       | enables ephemeral demo H2 storage                      |
 | `PORT`                     | provided by Render/Koyeb                     | host-provided server port, defaults to `8080` locally  |
-| `APP_CORS_ALLOWED_ORIGINS` | `https://your-user.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS |
+| `APP_CORS_ALLOWED_ORIGINS` | `https://marekmaciejewski.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS |
 
-By default, CORS allows local Vite development origins: `http://localhost:5173` and `http://127.0.0.1:5173`. Add the
-GitHub Pages origin through `APP_CORS_ALLOWED_ORIGINS` before exposing the hosted frontend.
+By default, CORS allows the GitHub Pages host and local Vite development origins:
+`https://marekmaciejewski.github.io`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
 
 ## Live demo
 
 - API base URL: `https://home-budgeting-assistant.onrender.com`
 - Swagger UI: `https://home-budgeting-assistant.onrender.com/swagger-ui/index.html`
+- Frontend UI: `https://marekmaciejewski.github.io/home-budgeting-assistant/` after GitHub Pages is enabled for this repository
 
 The hosted backend runs on Render Free. Render can spin down idle services, so the first request after inactivity may
 take about a minute before the app responds.
 
 The hosted backend uses the `demo` profile with ephemeral in-memory H2. Restart, redeploy, or idle spin-down starts from
 the seeded state, and `POST /demo/reset` restores the seed data during a running demo.
+
+## Frontend
+
+The React UI lives in `frontend/`.
+
+Install dependencies once:
+
+```powershell
+cd frontend
+npm.cmd install
+```
+
+Run against a local backend on `http://localhost:8080`, which is the default Vite development profile:
+
+```powershell
+npm.cmd run dev
+```
+
+Run against the deployed Render backend:
+
+```powershell
+npm.cmd run dev:render
+```
 
 ## Interact
 

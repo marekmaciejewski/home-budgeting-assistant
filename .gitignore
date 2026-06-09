@@ -1,4 +1,9 @@
 target/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/src/generated/
+frontend/node_modules/.tmp/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
