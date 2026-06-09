@@ -19,6 +19,8 @@ correcting, and iterating through further instructions until the application, te
 - Maven Wrapper is present and pinned to Maven `3.9.15`.
 - Maven Enforcer requires Java `21+` and Maven `3.9+`.
 - Configuration uses `application.yml`.
+- The server port is deployment-friendly through `server.port=${PORT:8080}`.
+- A `demo` Spring profile uses ephemeral in-memory H2 storage for free public hosting.
 - Lombok remains pinned to `1.18.46`.
 - Application web stack is still WebFlux.
 - Persistence uses Spring Data R2DBC repositories.
@@ -68,6 +70,21 @@ spring:
 ```
 
 The slash difference is intentional. R2DBC and JDBC use different H2 URL grammars, and attempts to make the URLs visually identical caused either invalid URLs or separate in-memory databases.
+
+The demo profile uses the same shared in-memory database name through each driver grammar:
+
+```yaml
+spring:
+  r2dbc:
+    url: "r2dbc:h2:mem:///demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+  liquibase:
+    url: "jdbc:h2:mem:demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+```
+
+This keeps the deployed demo stateless enough for free hosts such as Render Free or Koyeb Free. The database disappears
+when the process restarts, and `POST /demo/reset` restores the seed rows during a running demo. The reset controller
+and reset service are profile-gated with `@Profile("demo")`, so the endpoint is not exposed in the default local
+file-backed profile.
 
 ## Register And Operation Relationship
 
@@ -153,6 +170,10 @@ Additional checks performed:
   - `GET /operations/{operationId}`
   - `POST /operations/recharges`
   - `POST /operations/transfers`
+- Added public demo reset endpoint `POST /demo/reset` behind the `demo` profile; it clears operation history, restores
+  the four active seed registers, and returns the restored register list.
+- Added WebFlux CORS configuration controlled by `app.cors.allowed-origins` / `APP_CORS_ALLOWED_ORIGINS`; default local
+  frontend origins are allowed, while wildcard origins are avoided.
 - Removed old `POST /registers/recharge` and `POST /registers/transfer` endpoints after replacing them with the
   resource-oriented API.
 - Reorganized Java packages around API, application, domain, persistence, and configuration responsibilities.

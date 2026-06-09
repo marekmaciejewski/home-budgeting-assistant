@@ -1,0 +1,9 @@
+.git
+.github
+.idea
+target
+frontend
+
+*.iml
+
+.mvn/wrapper/maven-wrapper.jar

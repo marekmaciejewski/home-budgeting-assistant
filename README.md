@@ -2,8 +2,11 @@
 
 ## Preparation
 
-Before the application can be started, an H2 database file path must be provided in `application.yml` for both the R2DBC
-application connection and the JDBC Liquibase migration connection. The URLs should point at the same database file:
+Use JDK 21 when building or running the application.
+
+The default profile keeps the local file-backed H2 setup. Before the application can be started in the default profile,
+an H2 database file path must be provided in `application.yml` for both the R2DBC application connection and the JDBC
+Liquibase migration connection. The URLs should point at the same database file:
 
 ```yaml
 spring:
@@ -12,6 +15,9 @@ spring:
   liquibase:
     url: "jdbc:h2:file:C:/Users/you/foo/bar/db/registers;DB_CLOSE_ON_EXIT=FALSE"
 ```
+
+The server port is configured as `server.port=${PORT:8080}`, so free hosting providers can inject their assigned port
+with the `PORT` environment variable.
 
 ## Instruction
 
@@ -25,7 +31,75 @@ The DB will be loaded with initial state of following registers:
 | Insurance policy | 0       |
 | Food expenses    | 0       |
 
-To start from beginning simply stop the app and delete DB file in the provided earlier directory.
+In the default file-backed profile, deleting the local DB file gives a fully fresh database on the next start.
+
+## Demo profile
+
+For free demo hosting, run with the `demo` profile:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE='demo'
+.\mvnw.cmd spring-boot:run
+```
+
+The `demo` profile uses a named in-memory H2 database shared by Liquibase JDBC and R2DBC:
+
+```yaml
+spring:
+  r2dbc:
+    url: "r2dbc:h2:mem:///demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+  liquibase:
+    url: "jdbc:h2:mem:demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+```
+
+This is intentionally ephemeral: data is reset when the backend process restarts, and users can also reset it with
+`POST /demo/reset`. The reset endpoint and its supporting service are only active when the `demo` profile is enabled.
+
+Deployment-relevant environment variables:
+
+| variable                   | example                                      | purpose                                                |
+|----------------------------|----------------------------------------------|--------------------------------------------------------|
+| `SPRING_PROFILES_ACTIVE`   | `demo`                                       | enables ephemeral demo H2 storage                      |
+| `PORT`                     | provided by Render/Koyeb                     | host-provided server port, defaults to `8080` locally  |
+| `APP_CORS_ALLOWED_ORIGINS` | `https://marekmaciejewski.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS |
+
+By default, CORS allows the GitHub Pages host and local Vite development origins:
+`https://marekmaciejewski.github.io`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
+
+## Live demo
+
+- API base URL: `https://home-budgeting-assistant.onrender.com`
+- Swagger UI: `https://home-budgeting-assistant.onrender.com/swagger-ui/index.html`
+- Frontend UI: `https://marekmaciejewski.github.io/home-budgeting-assistant/` after GitHub Pages is enabled for this repository
+
+The hosted backend runs on Render Free. Render can spin down idle services, so the first request after inactivity may
+take about a minute before the app responds.
+
+The hosted backend uses the `demo` profile with ephemeral in-memory H2. Restart, redeploy, or idle spin-down starts from
+the seeded state, and `POST /demo/reset` restores the seed data during a running demo.
+
+## Frontend
+
+The React UI lives in `frontend/`.
+
+Install dependencies once:
+
+```powershell
+cd frontend
+npm.cmd install
+```
+
+Run against a local backend on `http://localhost:8080`, which is the default Vite development profile:
+
+```powershell
+npm.cmd run dev
+```
+
+Run against the deployed Render backend:
+
+```powershell
+npm.cmd run dev:render
+```
 
 ## Interact
 
@@ -39,12 +113,12 @@ The app exposes the following primary API on the default host:
 | GET    | `/operations/{operationId}`          | get one balance-changing operation  |
 | POST   | `/operations/recharges`              | create a recharge operation         |
 | POST   | `/operations/transfers`              | create a transfer operation         |
+| POST   | `/demo/reset`                        | reset public demo state; demo profile only |
 
 Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
-The details of the input/output model are available on the swagger ui url:
-`localhost:8080/swagger-ui.html`
-This is also the easiest way to interact with the app.
+The details of the input/output model are available through Swagger UI. Locally, open
+`http://localhost:8080/swagger-ui.html`; for the hosted backend, use the live demo link above.
 
 The checked-in OpenAPI contract lives in `src/main/resources/openapi/home-budget-api.yaml`.
 Maven generates the Spring WebFlux API interfaces and request/response DTOs from that file during the build.
@@ -81,6 +155,32 @@ Maven generates the Spring WebFlux API interfaces and request/response DTOs from
   {
     "id": "Savings",
     "balance": 5000.00
+  }
+]
+```
+
+### POST /demo/reset
+
+Available only with `SPRING_PROFILES_ACTIVE=demo`. Clears operation history, restores the seed registers, and returns
+the restored register list:
+
+```json
+[
+  {
+    "id": "Wallet",
+    "balance": 1000.00
+  },
+  {
+    "id": "Savings",
+    "balance": 5000.00
+  },
+  {
+    "id": "Insurance policy",
+    "balance": 0.00
+  },
+  {
+    "id": "Food expenses",
+    "balance": 0.00
   }
 ]
 ```
