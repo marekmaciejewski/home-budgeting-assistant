@@ -114,7 +114,7 @@ export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: Tr
         </div>
 
         <button className="btn btn-primary w-100" type="submit" disabled={disabled}>
-          {isSubmitting ? "Moving..." : "Create transfer"}
+          {isSubmitting ? "Transferring..." : "Transfer"}
         </button>
       </div>
     </form>

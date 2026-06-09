@@ -3,10 +3,11 @@ import { formatAmount } from "../utils/formatters";
 
 export type RegisterDashboardProps = {
   registers: RegisterResponse[];
+  totalBalance: number;
   isLoading: boolean;
 };
 
-export function RegisterDashboard({ registers, isLoading }: RegisterDashboardProps) {
+export function RegisterDashboard({ registers, totalBalance, isLoading }: RegisterDashboardProps) {
   const maxBalance = Math.max(...registers.map((register) => register.balance), 1);
 
   return (
@@ -19,6 +20,13 @@ export function RegisterDashboard({ registers, isLoading }: RegisterDashboardPro
         <span className="badge text-bg-light border">{registers.length} active</span>
       </div>
       <div className="card-body">
+        <div className="register-total mb-4">
+          <div className="register-total-label text-secondary small text-uppercase fw-semibold">
+            Total balance
+          </div>
+          <div className="register-total-value">{isLoading ? "..." : formatAmount(totalBalance)}</div>
+        </div>
+
         {isLoading ? (
           <div className="vstack gap-3" aria-label="Loading register balances">
             {[0, 1, 2, 3].map((item) => (
@@ -35,7 +43,6 @@ export function RegisterDashboard({ registers, isLoading }: RegisterDashboardPro
                   <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
                     <div>
                       <h3 className="h6 mb-1">{register.id}</h3>
-                      <div className="text-secondary small">Register ID</div>
                     </div>
                     <div className="fw-semibold text-nowrap">{formatAmount(register.balance)}</div>
                   </div>

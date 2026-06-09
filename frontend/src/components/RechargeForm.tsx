@@ -85,7 +85,7 @@ export function RechargeForm({ registers, disabled, isSubmitting, onSubmit }: Re
         </div>
 
         <button className="btn btn-primary w-100" type="submit" disabled={disabled}>
-          {isSubmitting ? "Recording..." : "Create recharge"}
+          {isSubmitting ? "Recharging..." : "Recharge"}
         </button>
       </div>
     </form>

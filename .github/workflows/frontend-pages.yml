@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - refinement
     paths:
       - "frontend/**"
       - "src/main/resources/openapi/home-budget-api.yaml"

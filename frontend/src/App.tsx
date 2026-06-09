@@ -6,7 +6,6 @@ import { OperationsHistory } from "./components/OperationsHistory";
 import { RechargeForm } from "./components/RechargeForm";
 import { RegisterDashboard } from "./components/RegisterDashboard";
 import { StatusAlerts } from "./components/StatusAlerts";
-import { SummaryCards } from "./components/SummaryCards";
 import { TransferForm } from "./components/TransferForm";
 import type { SubmitAction } from "./types/ui";
 import { formatAmount } from "./utils/formatters";
@@ -31,6 +30,9 @@ export default function App() {
   const [submitAction, setSubmitAction] = useState<SubmitAction>(null);
 
   const isRenderBackend = api.baseUrl.includes("onrender.com");
+  // TODO: Replace this URL-based assumption with backend-provided runtime metadata.
+  const isEphemeralDemo = isRenderBackend;
+  const canResetDemo = isEphemeralDemo;
 
   const loadDemoData = useCallback(async (mode: "initial" | "refresh" = "refresh") => {
     setErrorMessage(null);
@@ -119,6 +121,11 @@ export default function App() {
   }
 
   async function handleReset() {
+    if (!canResetDemo) {
+      setErrorMessage("Reset is available only for the hosted ephemeral demo.");
+      return;
+    }
+
     setErrorMessage(null);
     setFeedbackMessage(null);
     setSubmitAction("reset");
@@ -147,6 +154,8 @@ export default function App() {
       <AppHeader
         apiBaseUrl={api.baseUrl}
         isRenderBackend={isRenderBackend}
+        isEphemeralDemo={isEphemeralDemo}
+        canResetDemo={canResetDemo}
         isRefreshing={isRefreshing}
         isResetting={submitAction === "reset"}
         isInitialLoading={isInitialLoading}
@@ -167,16 +176,13 @@ export default function App() {
           isRenderBackend={isRenderBackend}
         />
 
-        <SummaryCards
-          totalBalance={totalBalance}
-          registerCount={registers.length}
-          operationCount={operations.length}
-          isLoading={isInitialLoading}
-        />
-
         <div className="row g-4 align-items-start">
           <div className="col-lg-7 col-xl-8">
-            <RegisterDashboard registers={registers} isLoading={isInitialLoading} />
+            <RegisterDashboard
+              registers={registers}
+              totalBalance={totalBalance}
+              isLoading={isInitialLoading}
+            />
             <div className="mt-4">
               <OperationsHistory operations={operations} isLoading={isInitialLoading} />
             </div>
@@ -203,4 +209,3 @@ export default function App() {
     </div>
   );
 }
-
