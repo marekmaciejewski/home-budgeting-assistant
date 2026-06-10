@@ -19,6 +19,21 @@ function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected frontend error.";
 }
 
+async function fetchDemoData(): Promise<{
+  registers: RegisterResponse[];
+  operations: OperationResponse[];
+}> {
+  const [nextRegisters, nextOperations] = await Promise.all([
+    api.getRegisters(),
+    api.getOperations()
+  ]);
+
+  return {
+    registers: nextRegisters,
+    operations: toSortedOperations(nextOperations)
+  };
+}
+
 export default function App() {
   const [registers, setRegisters] = useState<RegisterResponse[]>([]);
   const [operations, setOperations] = useState<OperationResponse[]>([]);
@@ -34,40 +49,66 @@ export default function App() {
   const isEphemeralDemo = isRenderBackend;
   const canResetDemo = isEphemeralDemo;
 
-  const loadDemoData = useCallback(async (mode: "initial" | "refresh" = "refresh") => {
+  const loadDemoData = useCallback(async () => {
     setErrorMessage(null);
     setShowColdStartHint(false);
-
-    if (mode === "initial") {
-      setIsInitialLoading(true);
-    } else {
-      setIsRefreshing(true);
-    }
+    setIsRefreshing(true);
 
     const coldStartTimer = window.setTimeout(() => {
       setShowColdStartHint(true);
     }, 7000);
 
     try {
-      const [nextRegisters, nextOperations] = await Promise.all([
-        api.getRegisters(),
-        api.getOperations()
-      ]);
-
-      setRegisters(nextRegisters);
-      setOperations(toSortedOperations(nextOperations));
+      const demoData = await fetchDemoData();
+      setRegisters(demoData.registers);
+      setOperations(demoData.operations);
     } catch (error) {
       setErrorMessage(messageFromError(error));
     } finally {
       window.clearTimeout(coldStartTimer);
-      setIsInitialLoading(false);
       setIsRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadDemoData("initial");
-  }, [loadDemoData]);
+    let isCurrent = true;
+
+    const coldStartTimer = window.setTimeout(() => {
+      if (isCurrent) {
+        setShowColdStartHint(true);
+      }
+    }, 7000);
+
+    async function loadInitialDemoData() {
+      try {
+        const demoData = await fetchDemoData();
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setRegisters(demoData.registers);
+        setOperations(demoData.operations);
+      } catch (error) {
+        if (isCurrent) {
+          setErrorMessage(messageFromError(error));
+        }
+      } finally {
+        window.clearTimeout(coldStartTimer);
+
+        if (isCurrent) {
+          setIsInitialLoading(false);
+        }
+      }
+    }
+
+    void loadInitialDemoData();
+
+    return () => {
+      isCurrent = false;
+      window.clearTimeout(coldStartTimer);
+    };
+  }, []);
 
   const totalBalance = useMemo(
     () => registers.reduce((total, register) => total + register.balance, 0),
@@ -79,7 +120,7 @@ export default function App() {
 
   async function refreshAfterMutation(message: string) {
     setFeedbackMessage(message);
-    await loadDemoData("refresh");
+    await loadDemoData();
   }
 
   async function handleRecharge(command: RechargeCommand): Promise<boolean> {
@@ -162,7 +203,7 @@ export default function App() {
         isBusy={submitAction !== null}
         onRefresh={() => {
           setFeedbackMessage(null);
-          void loadDemoData("refresh");
+          void loadDemoData();
         }}
         onReset={() => void handleReset()}
       />

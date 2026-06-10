@@ -1,4 +1,4 @@
-﻿import { FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import type { RegisterResponse, TransferCommand } from "../apiTypes";
 
 export type TransferFormProps = {
@@ -9,21 +9,12 @@ export type TransferFormProps = {
 };
 
 export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: TransferFormProps) {
-  const [sourceRegisterId, setSourceRegisterId] = useState("");
-  const [targetRegisterId, setTargetRegisterId] = useState("");
+  const [selectedSourceRegisterId, setSelectedSourceRegisterId] = useState("");
+  const [selectedTargetRegisterId, setSelectedTargetRegisterId] = useState("");
   const [amount, setAmount] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (registers.length === 0) {
-      setSourceRegisterId("");
-      setTargetRegisterId("");
-      return;
-    }
-
-    setSourceRegisterId((current) => current || registers[0].id);
-    setTargetRegisterId((current) => (current || registers[1]?.id) ?? registers[0].id);
-  }, [registers]);
+  const sourceRegisterId = getAvailableRegisterId(registers, selectedSourceRegisterId);
+  const targetRegisterId = getAvailableRegisterId(registers, selectedTargetRegisterId, 1);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -64,7 +55,7 @@ export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: Tr
               className="form-select"
               id="transfer-source"
               value={sourceRegisterId}
-              onChange={(event) => setSourceRegisterId(event.target.value)}
+              onChange={(event) => setSelectedSourceRegisterId(event.target.value)}
               disabled={disabled}
             >
               {registers.map((register) => (
@@ -83,7 +74,7 @@ export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: Tr
               className="form-select"
               id="transfer-target"
               value={targetRegisterId}
-              onChange={(event) => setTargetRegisterId(event.target.value)}
+              onChange={(event) => setSelectedTargetRegisterId(event.target.value)}
               disabled={disabled}
             >
               {registers.map((register) => (
@@ -121,3 +112,14 @@ export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: Tr
   );
 }
 
+function getAvailableRegisterId(
+  registers: RegisterResponse[],
+  selectedRegisterId: string,
+  fallbackIndex = 0
+): string {
+  if (registers.some((register) => register.id === selectedRegisterId)) {
+    return selectedRegisterId;
+  }
+
+  return registers[fallbackIndex]?.id ?? registers[0]?.id ?? "";
+}
