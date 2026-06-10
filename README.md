@@ -1,6 +1,19 @@
 # home-budgeting-assistant
 
-## Preparation
+## Live demo
+
+- [Frontend UI](https://marekmaciejewski.github.io/home-budgeting-assistant/)
+- [Swagger UI](https://home-budgeting-assistant.onrender.com/swagger-ui/index.html)
+- API base URL: `https://home-budgeting-assistant.onrender.com`
+
+> [!IMPORTANT]
+> The first request after inactivity may take about a minute. The backend runs on Render Free and may need to wake up
+> before the demo responds.
+
+The hosted backend uses the `demo` profile with ephemeral in-memory H2. Restart, redeploy, or idle spin-down starts from
+the seeded state, and `POST /demo/reset` restores the seed data during a running demo.
+
+## Local backend setup
 
 Use JDK 21 when building or running the application.
 
@@ -16,13 +29,10 @@ spring:
     url: "jdbc:h2:file:C:/Users/you/foo/bar/db/registers;DB_CLOSE_ON_EXIT=FALSE"
 ```
 
-The server port is configured as `server.port=${PORT:8080}`, so free hosting providers can inject their assigned port
-with the `PORT` environment variable.
+## Run backend locally
 
-## Instruction
-
-The app can be run from IDE or maven plugin: `.\mvnw.cmd spring-boot:run`.
-The DB will be loaded with initial state of following registers:
+The app can be run from the IDE or Maven plugin: `.\mvnw.cmd spring-boot:run`.
+The database will be loaded with the initial state of the following registers:
 
 | register         | balance |
 |------------------|---------|
@@ -33,75 +43,7 @@ The DB will be loaded with initial state of following registers:
 
 In the default file-backed profile, deleting the local DB file gives a fully fresh database on the next start.
 
-## Demo profile
-
-For free demo hosting, run with the `demo` profile:
-
-```powershell
-$env:SPRING_PROFILES_ACTIVE='demo'
-.\mvnw.cmd spring-boot:run
-```
-
-The `demo` profile uses a named in-memory H2 database shared by Liquibase JDBC and R2DBC:
-
-```yaml
-spring:
-  r2dbc:
-    url: "r2dbc:h2:mem:///demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-  liquibase:
-    url: "jdbc:h2:mem:demo;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
-```
-
-This is intentionally ephemeral: data is reset when the backend process restarts, and users can also reset it with
-`POST /demo/reset`. The reset endpoint and its supporting service are only active when the `demo` profile is enabled.
-
-Deployment-relevant environment variables:
-
-| variable                   | example                                      | purpose                                                |
-|----------------------------|----------------------------------------------|--------------------------------------------------------|
-| `SPRING_PROFILES_ACTIVE`   | `demo`                                       | enables ephemeral demo H2 storage                      |
-| `PORT`                     | provided by Render/Koyeb                     | host-provided server port, defaults to `8080` locally  |
-| `APP_CORS_ALLOWED_ORIGINS` | `https://marekmaciejewski.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS |
-
-By default, CORS allows the GitHub Pages host and local Vite development origins:
-`https://marekmaciejewski.github.io`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
-
-## Live demo
-
-- API base URL: `https://home-budgeting-assistant.onrender.com`
-- Swagger UI: `https://home-budgeting-assistant.onrender.com/swagger-ui/index.html`
-- Frontend UI: `https://marekmaciejewski.github.io/home-budgeting-assistant/` after GitHub Pages is enabled for this repository
-
-The hosted backend runs on Render Free. Render can spin down idle services, so the first request after inactivity may
-take about a minute before the app responds.
-
-The hosted backend uses the `demo` profile with ephemeral in-memory H2. Restart, redeploy, or idle spin-down starts from
-the seeded state, and `POST /demo/reset` restores the seed data during a running demo.
-
-## Frontend
-
-The React UI lives in `frontend/`.
-
-Install dependencies once:
-
-```powershell
-cd frontend
-npm.cmd install
-```
-
-Run against a local backend on `http://localhost:8080`, which is the default Vite development profile:
-
-```powershell
-npm.cmd run dev
-```
-
-Run against the deployed Render backend:
-
-```powershell
-npm.cmd run dev:render
-```
-
-## Interact
+## Backend API
 
 The app exposes the following primary API on the default host:
 
@@ -118,71 +60,32 @@ The app exposes the following primary API on the default host:
 Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
 The details of the input/output model are available through Swagger UI. Locally, open
-`http://localhost:8080/swagger-ui.html`; for the hosted backend, use the live demo link above.
+[Swagger UI](http://localhost:8080/swagger-ui.html); for the hosted backend, use the live demo link above.
 
 The checked-in OpenAPI contract lives in `src/main/resources/openapi/home-budget-api.yaml`.
 Maven generates the Spring WebFlux API interfaces and request/response DTOs from that file during the build.
 
-## Sample requests
+Quick smoke test against the hosted backend:
 
-### POST /operations/recharges
-
-```json
-{
-  "registerId": "Wallet",
-  "amount": 2500
-}
+```powershell
+curl.exe https://home-budgeting-assistant.onrender.com/registers
 ```
 
-### POST /operations/transfers
+## Frontend
 
-```json
-{
-  "sourceRegisterId": "Wallet",
-  "targetRegisterId": "Food expenses",
-  "amount": 1500
-}
+The React UI lives in `frontend/`.
+
+Install dependencies once:
+
+```powershell
+cd frontend
+npm.cmd install
 ```
 
-### GET /registers
+Run against a [local backend](http://localhost:8080), which is the default Vite development profile:
 
-```json
-[
-  {
-    "id": "Wallet",
-    "balance": 1000.00
-  },
-  {
-    "id": "Savings",
-    "balance": 5000.00
-  }
-]
-```
-
-### POST /demo/reset
-
-Available only with `SPRING_PROFILES_ACTIVE=demo`. Clears operation history, restores the seed registers, and returns
-the restored register list:
-
-```json
-[
-  {
-    "id": "Wallet",
-    "balance": 1000.00
-  },
-  {
-    "id": "Savings",
-    "balance": 5000.00
-  },
-  {
-    "id": "Insurance policy",
-    "balance": 0.00
-  },
-  {
-    "id": "Food expenses",
-    "balance": 0.00
-  }
-]
+```powershell
+npm.cmd run dev
 ```
 
 ## Tests
@@ -190,8 +93,24 @@ the restored register list:
 To run all the unit and integration tests run command: `.\mvnw.cmd clean verify`.
 
 The same command generates a JaCoCo coverage report at `target/site/jacoco/index.html`.
-In GitHub Actions, the `Coverage` workflow shows a coverage table in the job summary and uploads the full HTML report as
-the `jacoco-coverage-report` artifact.
+In GitHub Actions, the [Coverage](https://github.com/marekmaciejewski/home-budgeting-assistant/actions/workflows/coverage.yml)
+workflow shows a coverage table in the job summary and uploads the full HTML report as the `jacoco-coverage-report`
+artifact.
+
+## Deployment notes
+
+Hosted deployments use the `demo` profile, which enables ephemeral demo storage and the `POST /demo/reset` endpoint.
+
+Deployment-relevant environment variables:
+
+| variable                   | example                                      | purpose                                                |
+|----------------------------|----------------------------------------------|--------------------------------------------------------|
+| `SPRING_PROFILES_ACTIVE`   | `demo`                                       | enables ephemeral demo H2 storage                      |
+| `PORT`                     | provided by Render                           | host-provided server port, defaults to `8080` locally  |
+| `APP_CORS_ALLOWED_ORIGINS` | `https://marekmaciejewski.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS |
+
+By default, CORS allows the GitHub Pages host and local Vite development origins:
+`https://marekmaciejewski.github.io`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
 
 ## The Original Assignment
 
