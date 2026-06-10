@@ -1,4 +1,4 @@
-﻿import { FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import type { RechargeCommand, RegisterResponse } from "../apiTypes";
 
 export type RechargeFormProps = {
@@ -9,18 +9,10 @@ export type RechargeFormProps = {
 };
 
 export function RechargeForm({ registers, disabled, isSubmitting, onSubmit }: RechargeFormProps) {
-  const [registerId, setRegisterId] = useState("");
+  const [selectedRegisterId, setSelectedRegisterId] = useState("");
   const [amount, setAmount] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (registers.length === 0) {
-      setRegisterId("");
-      return;
-    }
-
-    setRegisterId((current) => current || registers[0].id);
-  }, [registers]);
+  const registerId = getAvailableRegisterId(registers, selectedRegisterId);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,7 +47,7 @@ export function RechargeForm({ registers, disabled, isSubmitting, onSubmit }: Re
             className="form-select"
             id="recharge-register"
             value={registerId}
-            onChange={(event) => setRegisterId(event.target.value)}
+            onChange={(event) => setSelectedRegisterId(event.target.value)}
             disabled={disabled}
           >
             {registers.map((register) => (
@@ -85,9 +77,17 @@ export function RechargeForm({ registers, disabled, isSubmitting, onSubmit }: Re
         </div>
 
         <button className="btn btn-primary w-100" type="submit" disabled={disabled}>
-          {isSubmitting ? "Recording..." : "Create recharge"}
+          {isSubmitting ? "Recharging..." : "Recharge"}
         </button>
       </div>
     </form>
   );
+}
+
+function getAvailableRegisterId(registers: RegisterResponse[], selectedRegisterId: string): string {
+  if (registers.some((register) => register.id === selectedRegisterId)) {
+    return selectedRegisterId;
+  }
+
+  return registers[0]?.id ?? "";
 }
