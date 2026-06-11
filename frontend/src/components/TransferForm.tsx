@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type SyntheticEvent, useState } from "react";
 import type { RegisterResponse, TransferCommand } from "../apiTypes";
 
 export type TransferFormProps = {
@@ -8,7 +8,7 @@ export type TransferFormProps = {
   onSubmit: (command: TransferCommand) => Promise<boolean>;
 };
 
-export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: TransferFormProps) {
+export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: Readonly<TransferFormProps>) {
   const [selectedSourceRegisterId, setSelectedSourceRegisterId] = useState("");
   const [selectedTargetRegisterId, setSelectedTargetRegisterId] = useState("");
   const [amount, setAmount] = useState("");
@@ -16,7 +16,7 @@ export function TransferForm({ registers, disabled, isSubmitting, onSubmit }: Tr
   const sourceRegisterId = getAvailableRegisterId(registers, selectedSourceRegisterId);
   const targetRegisterId = getAvailableRegisterId(registers, selectedTargetRegisterId, 1);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setValidationError(null);
 

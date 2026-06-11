@@ -54,7 +54,7 @@ export default function App() {
     setShowColdStartHint(false);
     setIsRefreshing(true);
 
-    const coldStartTimer = window.setTimeout(() => {
+    const coldStartTimer = globalThis.setTimeout(() => {
       setShowColdStartHint(true);
     }, 7000);
 
@@ -65,7 +65,7 @@ export default function App() {
     } catch (error) {
       setErrorMessage(messageFromError(error));
     } finally {
-      window.clearTimeout(coldStartTimer);
+      globalThis.clearTimeout(coldStartTimer);
       setIsRefreshing(false);
     }
   }, []);
@@ -73,7 +73,7 @@ export default function App() {
   useEffect(() => {
     let isCurrent = true;
 
-    const coldStartTimer = window.setTimeout(() => {
+    const coldStartTimer = globalThis.setTimeout(() => {
       if (isCurrent) {
         setShowColdStartHint(true);
       }
@@ -94,7 +94,7 @@ export default function App() {
           setErrorMessage(messageFromError(error));
         }
       } finally {
-        window.clearTimeout(coldStartTimer);
+        globalThis.clearTimeout(coldStartTimer);
 
         if (isCurrent) {
           setIsInitialLoading(false);
@@ -106,7 +106,7 @@ export default function App() {
 
     return () => {
       isCurrent = false;
-      window.clearTimeout(coldStartTimer);
+      globalThis.clearTimeout(coldStartTimer);
     };
   }, []);
 
@@ -172,7 +172,7 @@ export default function App() {
     setSubmitAction("reset");
     setShowColdStartHint(false);
 
-    const coldStartTimer = window.setTimeout(() => {
+    const coldStartTimer = globalThis.setTimeout(() => {
       setShowColdStartHint(true);
     }, 7000);
 
@@ -185,7 +185,7 @@ export default function App() {
     } catch (error) {
       setErrorMessage(messageFromError(error));
     } finally {
-      window.clearTimeout(coldStartTimer);
+      globalThis.clearTimeout(coldStartTimer);
       setSubmitAction(null);
     }
   }

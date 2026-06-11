@@ -24,7 +24,7 @@ export function AppHeader({
   isBusy,
   onRefresh,
   onReset
-}: AppHeaderProps) {
+}: Readonly<AppHeaderProps>) {
   const backendLabel = isRenderBackend ? "Render demo backend" : "Local backend";
   const storageLabel = isEphemeralDemo ? "Ephemeral" : "Persistent";
   const storageBadgeClass = isEphemeralDemo ? "text-bg-warning" : "text-bg-success";
