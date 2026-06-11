@@ -1,4 +1,4 @@
-﻿import type { RegisterResponse } from "../apiTypes";
+import type { RegisterResponse } from "../apiTypes";
 import type { ReactNode } from "react";
 import { formatAmount } from "../utils/formatters";
 

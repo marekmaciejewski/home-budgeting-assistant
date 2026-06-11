@@ -1,4 +1,4 @@
-﻿import type { OperationResponse } from "../apiTypes";
+import type { OperationResponse } from "../apiTypes";
 
 export function toSortedOperations(operations: OperationResponse[]): OperationResponse[] {
   return [...operations].sort((left, right) => {

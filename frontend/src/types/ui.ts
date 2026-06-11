@@ -1,1 +1,1 @@
-﻿export type SubmitAction = "recharge" | "transfer" | "reset" | null;
+export type SubmitAction = "recharge" | "transfer" | "reset" | null;
