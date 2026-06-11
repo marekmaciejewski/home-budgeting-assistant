@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>Home Budgeting Assistant logo</title>
+  <rect width="512" height="512" rx="154" fill="#0d6efd" />
+  <text
+    x="50%"
+    y="51%"
+    fill="#fff"
+    dominant-baseline="middle"
+    font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="190"
+    font-weight="700"
+    text-anchor="middle"
+  >
+    HB
+  </text>
+</svg>
