@@ -19,6 +19,14 @@
         <jacocoArgLine></jacocoArgLine>
         <lombok.version>1.18.46</lombok.version>
         <openapi-generator.version>7.6.0</openapi-generator.version>
+        <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+        <sonar.organization>marekmaciejewski</sonar.organization>
+        <sonar.projectKey>marekmaciejewski_home-budgeting-assistant</sonar.projectKey>
+        <sonar.sources>src/main/java,src/main/resources,frontend/src,frontend/index.html,frontend/vite.config.ts,frontend/eslint.config.js,Dockerfile</sonar.sources>
+        <sonar.tests>src/test/java</sonar.tests>
+        <sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.exclusions>target/generated-sources/openapi/**,frontend/src/generated/**,frontend/dist/**,frontend/node_modules/**</sonar.exclusions>
+        <sonar.coverage.exclusions>frontend/**,src/main/resources/**</sonar.coverage.exclusions>
         <test.jvm.args>-Xshare:off
             -javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar
         </test.jvm.args>
