@@ -1,4 +1,5 @@
 ﻿import type { RegisterResponse } from "../apiTypes";
+import type { ReactNode } from "react";
 import { formatAmount } from "../utils/formatters";
 
 export type RegisterDashboardProps = {
@@ -7,8 +8,48 @@ export type RegisterDashboardProps = {
   isLoading: boolean;
 };
 
-export function RegisterDashboard({ registers, totalBalance, isLoading }: RegisterDashboardProps) {
+export function RegisterDashboard({ registers, totalBalance, isLoading }: Readonly<RegisterDashboardProps>) {
   const maxBalance = Math.max(...registers.map((register) => register.balance), 1);
+  let content: ReactNode;
+
+  if (isLoading) {
+    content = (
+      <div className="vstack gap-3" aria-label="Loading register balances">
+        {[0, 1, 2, 3].map((item) => (
+          <div className="placeholder-card" key={item} />
+        ))}
+      </div>
+    );
+  } else if (registers.length > 0) {
+    content = (
+      <div className="vstack gap-3">
+        {registers.map((register) => {
+          const percentage = Math.max((register.balance / maxBalance) * 100, 3);
+
+          return (
+            <article className="register-row border rounded-3 p-3" key={register.id}>
+              <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
+                <div>
+                  <h3 className="h6 mb-1">{register.id}</h3>
+                </div>
+                <div className="fw-semibold text-nowrap">{formatAmount(register.balance)}</div>
+              </div>
+              <div className="progress balance-progress" aria-hidden="true">
+                <div className="progress-bar" style={{ width: `${percentage}%` }} />
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    );
+  } else {
+    content = (
+      <div className="empty-state text-center p-4">
+        <div className="fw-semibold mb-1">No registers returned.</div>
+        <div className="text-secondary">Reset the demo or refresh data.</div>
+      </div>
+    );
+  }
 
   return (
     <section className="card border-0 shadow-sm">
@@ -27,38 +68,7 @@ export function RegisterDashboard({ registers, totalBalance, isLoading }: Regist
           <div className="register-total-value">{isLoading ? "..." : formatAmount(totalBalance)}</div>
         </div>
 
-        {isLoading ? (
-          <div className="vstack gap-3" aria-label="Loading register balances">
-            {[0, 1, 2, 3].map((item) => (
-              <div className="placeholder-card" key={item} />
-            ))}
-          </div>
-        ) : registers.length > 0 ? (
-          <div className="vstack gap-3">
-            {registers.map((register) => {
-              const percentage = Math.max((register.balance / maxBalance) * 100, 3);
-
-              return (
-                <article className="register-row border rounded-3 p-3" key={register.id}>
-                  <div className="d-flex justify-content-between align-items-start gap-3 mb-2">
-                    <div>
-                      <h3 className="h6 mb-1">{register.id}</h3>
-                    </div>
-                    <div className="fw-semibold text-nowrap">{formatAmount(register.balance)}</div>
-                  </div>
-                  <div className="progress balance-progress" aria-hidden="true">
-                    <div className="progress-bar" style={{ width: `${percentage}%` }} />
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="empty-state text-center p-4">
-            <div className="fw-semibold mb-1">No registers returned.</div>
-            <div className="text-secondary">Reset the demo or refresh data.</div>
-          </div>
-        )}
+        {content}
       </div>
     </section>
   );

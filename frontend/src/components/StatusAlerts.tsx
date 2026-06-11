@@ -24,7 +24,7 @@ export function StatusAlerts({
   errorMessage,
   feedbackMessage,
   isRenderBackend
-}: StatusAlertsProps) {
+}: Readonly<StatusAlertsProps>) {
   const [dismissedPromptKey, setDismissedPromptKey] = useState<string | null>(null);
   const previousPromptKey = useRef<string | null>(null);
 
@@ -50,11 +50,11 @@ export function StatusAlerts({
       return undefined;
     }
 
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       setDismissedPromptKey(prompt.key);
     }, prompt.autoDismissMs);
 
-    return () => window.clearTimeout(timer);
+    return () => globalThis.clearTimeout(timer);
   }, [dismissedPromptKey, prompt?.autoDismissMs, prompt?.key]);
 
   if (!prompt || dismissedPromptKey === prompt.key) {

@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type SyntheticEvent, useState } from "react";
 import type { RechargeCommand, RegisterResponse } from "../apiTypes";
 
 export type RechargeFormProps = {
@@ -8,13 +8,13 @@ export type RechargeFormProps = {
   onSubmit: (command: RechargeCommand) => Promise<boolean>;
 };
 
-export function RechargeForm({ registers, disabled, isSubmitting, onSubmit }: RechargeFormProps) {
+export function RechargeForm({ registers, disabled, isSubmitting, onSubmit }: Readonly<RechargeFormProps>) {
   const [selectedRegisterId, setSelectedRegisterId] = useState("");
   const [amount, setAmount] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const registerId = getAvailableRegisterId(registers, selectedRegisterId);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SyntheticEvent<HTMLFormElement>) {
     event.preventDefault();
     setValidationError(null);
 
