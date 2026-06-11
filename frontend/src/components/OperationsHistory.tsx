@@ -1,4 +1,4 @@
-﻿import type { OperationResponse } from "../apiTypes";
+import type { OperationResponse } from "../apiTypes";
 import type { ReactNode } from "react";
 import { formatAmount, formatTimestamp } from "../utils/formatters";
 import { describeOperation, operationKind } from "../utils/operations";
