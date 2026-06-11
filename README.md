@@ -95,7 +95,8 @@ To run all the unit and integration tests run command: `.\mvnw.cmd clean verify`
 The same command generates a JaCoCo coverage report at `target/site/jacoco/index.html`.
 In GitHub Actions, the [Coverage](https://github.com/marekmaciejewski/home-budgeting-assistant/actions/workflows/coverage.yml)
 workflow shows a coverage table in the job summary, uploads the full HTML report as the `jacoco-coverage-report`
-artifact, and publishes analysis to SonarQube Cloud.
+artifact, and publishes analysis to the
+[SonarQube Cloud report](https://sonarcloud.io/summary/overall?id=marekmaciejewski_home-budgeting-assistant&branch=master).
 
 ## Deployment notes
 
