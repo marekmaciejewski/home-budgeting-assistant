@@ -17,7 +17,7 @@ WORKDIR /app
 
 RUN addgroup -S app && adduser -S app -G app
 
-COPY --from=build --chown=app:app /workspace/target/home-budgeting-assistant-*.jar /app/app.jar
+COPY --from=build --chown=root:root --chmod=0444 /workspace/target/home-budgeting-assistant-*.jar /app/app.jar
 
 ENV SPRING_PROFILES_ACTIVE=demo
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
