@@ -68,6 +68,15 @@ The details of the input/output model are available through Swagger UI. Locally,
 The checked-in OpenAPI contract lives in `src/main/resources/openapi/home-budget-api.yaml`.
 Maven generates the Spring WebFlux API interfaces and request/response DTOs from that file during the build.
 
+## Planning docs
+
+- [Auditable ledger master plan](docs/auditable-ledger-master-plan.md)
+- [Auditable ledger Phase 1 plan](docs/auditable-ledger-phase-1-plan.md)
+- [Auditability UI plan](docs/auditability-ui-plan.md)
+
+The Codex app's `[Use plan mode]` button is useful for work like the auditable ledger feature: use it before each
+implementation phase to keep the checklist, acceptance criteria, and tradeoffs visible before code changes begin.
+
 Quick smoke test against the hosted backend:
 
 ```powershell
