@@ -1,3 +1,6 @@
+--liquibase formatted sql
+--changeset Marek:ledger-startup-mixed-state-fixture
+--comment Mixed ledger state inserted after schema migration to assert startup failure
 INSERT INTO OPERATIONS (
     ID,
     TIMESTAMP,
@@ -11,38 +14,26 @@ INSERT INTO OPERATIONS (
     OPERATION_HASH
 ) VALUES
 (
-    101,
+    201,
     TIMESTAMP '2026-06-01 10:15:30',
     2500.00,
     NULL,
     'Wallet',
     'RECHARGE',
-    -101,
+    -201,
     '0000000000000000000000000000000000000000000000000000000000000000',
     '0000000000000000000000000000000000000000000000000000000000000000',
-    LPAD(CAST(101 AS VARCHAR), 64, '0')
+    LPAD(CAST(201 AS VARCHAR), 64, '0')
 ),
 (
-    102,
-    TIMESTAMP '2026-06-01 10:00:00',
+    202,
+    TIMESTAMP '2026-06-01 10:16:30',
     100.00,
     'Wallet',
     'Savings',
     'TRANSFER',
-    -102,
+    1,
     '0000000000000000000000000000000000000000000000000000000000000000',
-    '0000000000000000000000000000000000000000000000000000000000000000',
-    LPAD(CAST(102 AS VARCHAR), 64, '0')
-),
-(
-    103,
-    TIMESTAMP '2026-06-01 10:00:00',
-    50.00,
-    NULL,
-    'Savings',
-    'RECHARGE',
-    -103,
-    '0000000000000000000000000000000000000000000000000000000000000000',
-    '0000000000000000000000000000000000000000000000000000000000000000',
-    LPAD(CAST(103 AS VARCHAR), 64, '0')
+    'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
 );
