@@ -18,7 +18,7 @@ This feature should start as an in-repo auditable ledger:
 - Keep registers and operations as the user-facing concepts.
 - Add a hash chain over the operation history.
 - Treat operation history as the source of truth for auditability.
-- Keep `REGISTER.BALANCE` as a read-optimized projection for now.
+- Keep `REGISTERS.BALANCE` as a read-optimized projection for now.
 - Avoid proof-of-work, mining, tokens, peer nodes, and distributed consensus.
 
 Use "auditable ledger" or "tamper-evident ledger" in product and code-facing language. Avoid presenting the feature as
@@ -42,7 +42,7 @@ This keeps the work collaborative instead of making the implementation feel like
 
 The app already has the right foundation:
 
-- Operations are first-class records in `OPERATION`.
+- Operations are first-class records in `OPERATIONS`.
 - Recharges and transfers are append-like business events.
 - Register balances are changed through service methods rather than directly by controllers.
 - The OpenAPI contract is the source of truth for external API shape.
@@ -81,15 +81,15 @@ ledgerVersion=1
 operationType=RECHARGE|TRANSFER
 timestamp=<Instant in UTC ISO-8601 form>
 amount=<BigDecimal with scale 2 and plain string format>
-sourceRegisterId=<value or empty marker>
-targetRegisterId=<value or empty marker>
+sourceRegisterId=<value or null>
+targetRegisterId=<value or null>
 ```
 
 Rules:
 
 - Normalize timestamps to `Instant`.
 - Normalize money to scale 2 before hashing.
-- Use a stable empty/null marker for missing source or target register IDs.
+- Use the literal `null` string for missing source or target register IDs.
 - Use UTF-8 bytes.
 - Use lowercase hexadecimal SHA-256 output.
 - Keep the canonical format versioned so future changes can be introduced deliberately.
@@ -107,8 +107,9 @@ The exact separator format should be explicit in code and covered by tests.
 ### Phase 1: Ledger Fields
 
 - Update `src/main/resources/openapi/home-budget-api.yaml` first for response/API changes.
-- Add Liquibase changelog columns to `OPERATION`.
-- Add an `OperationType` model.
+- Add Liquibase changelogs: first clean up operation/register table and relationship names, then add ledger columns to
+  `OPERATIONS`.
+- Use the OpenAPI-generated `OperationType` model.
 - Extend the R2DBC `Operation` entity.
 - Add generated DTO exposure for minimal ledger fields.
 
@@ -229,14 +230,24 @@ Prefer structural JSON assertions for controller and integration tests.
 
 ## Migration Strategy
 
-This is a demo/showcase app, but the local file-backed H2 profile can contain existing operation history.
+This is a demo/showcase app, but a local file-backed H2 database can still contain operation rows from earlier runs.
 
 Recommended low-risk path:
 
-1. Add ledger columns as nullable.
-2. Backfill existing operations deterministically in ledger order, probably by `TIMESTAMP` then `ID`.
-3. Verify the backfilled chain.
-4. Tighten constraints only after backfill behavior is proven.
+1. Clean up operation/register schema names and target-register nullability.
+2. Add ledger columns.
+3. In the same structural migration, add not-null constraints with `defaultNullValue` fallbacks so legacy rows receive
+   database-safe ledger values.
+4. Convert defaulted legacy rows to type-correct and unique temporary placeholders before uniqueness and type/source
+   constraints are applied.
+5. Backfill the real deterministic chain on startup by `TIMESTAMP` then `ID`.
+6. Start assigning sequence and hash fields for newly appended operations.
+
+The ledger migration should be backward-compatible with pre-ledger local databases. Existing operation rows are not
+discarded: nullable ledger columns are added first, Liquibase defaults make them non-null, compact SQL fixes the
+defaulted values that must be type-correct or unique, and startup backfill replaces placeholders with deterministic
+hash-chain values. After these changelogs are released, compatibility fixes should be appended as new changelogs rather
+than by rewriting applied ones.
 
 For the public demo profile, `POST /demo/reset` should clear operations and restore seed registers. After this feature,
 reset should also leave the ledger empty and ready for a fresh genesis-linked first operation.

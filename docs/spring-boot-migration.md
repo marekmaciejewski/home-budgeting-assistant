@@ -88,9 +88,12 @@ file-backed profile.
 
 ## Register And Operation Relationship
 
-The database still models the relationship with foreign keys from `OPERATION` to `REGISTER`.
+The database still models the relationship with foreign keys from `OPERATIONS` to `REGISTERS`.
 
-The Java model no longer uses JPA object graphs, cascades, or lazy collection loading. `Operation` stores source and target register IDs, and operations are persisted explicitly through `OperationRepository`. This matches Spring Data R2DBC's aggregate style and avoids pretending that R2DBC has JPA relationship management.
+The Java model no longer uses JPA object graphs, cascades, or lazy collection loading. `Operation` stores source and
+target register IDs in `SOURCE_REGISTER_ID` and `TARGET_REGISTER_ID`, and operations are persisted explicitly through
+`OperationRepository`. This matches Spring Data R2DBC's aggregate style and avoids pretending that R2DBC has JPA
+relationship management.
 
 ## Boot 4 Adjustments
 
@@ -138,8 +141,7 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 Current result:
 
 - Build: success.
-- Unit tests: no tests matched the current Surefire naming pattern.
-- Integration tests: 41 passed.
+- Unit and integration tests: 48 passed.
 
 Additional checks performed:
 

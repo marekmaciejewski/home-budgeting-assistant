@@ -2,6 +2,7 @@ package pl.mm.homebudget.persistence.entity;
 
 import lombok.Getter;
 import lombok.Setter;
+import pl.mm.homebudget.api.dto.OperationType;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
@@ -9,7 +10,7 @@ import org.springframework.data.relational.core.mapping.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Table("OPERATION")
+@Table("OPERATIONS")
 @Getter
 @Setter
 public class Operation {
@@ -21,9 +22,19 @@ public class Operation {
     private Instant timestamp;
     @Column("AMOUNT")
     private BigDecimal amount;
-    @Column("OPERATIONS_FROM")
+    @Column("OPERATION_TYPE")
+    private OperationType operationType;
+    @Column("SEQUENCE_NUMBER")
+    private Long sequenceNumber;
+    @Column("PREVIOUS_HASH")
+    private String previousHash;
+    @Column("PAYLOAD_HASH")
+    private String payloadHash;
+    @Column("OPERATION_HASH")
+    private String operationHash;
+    @Column("SOURCE_REGISTER_ID")
     private String sourceRegisterId;
-    @Column("OPERATIONS_TO")
+    @Column("TARGET_REGISTER_ID")
     private String targetRegisterId;
 
 }

@@ -73,11 +73,17 @@ paths:
                 - id: 1
                   timestamp: "2026-06-01T10:15:30Z"
                   amount: 2500.00
+                  operationType: RECHARGE
+                  sequenceNumber: 1
+                  operationHash: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
                   sourceRegisterId: null
                   targetRegisterId: Wallet
                 - id: 2
                   timestamp: "2026-06-01T10:15:30Z"
                   amount: 1500.00
+                  operationType: TRANSFER
+                  sequenceNumber: 2
+                  operationHash: e324da21bb55dc8730068ce1f132a61fb26b3d06afae0a7165aa09dbb6b7cb1e
                   sourceRegisterId: Wallet
                   targetRegisterId: Food expenses
   /operations/recharges:
@@ -109,6 +115,9 @@ paths:
                 id: 1
                 timestamp: "2026-06-01T10:15:30Z"
                 amount: 2500.00
+                operationType: RECHARGE
+                sequenceNumber: 1
+                operationHash: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
                 sourceRegisterId: null
                 targetRegisterId: Wallet
         "400":
@@ -144,6 +153,9 @@ paths:
                 id: 2
                 timestamp: "2026-06-01T10:15:30Z"
                 amount: 1500.00
+                operationType: TRANSFER
+                sequenceNumber: 2
+                operationHash: e324da21bb55dc8730068ce1f132a61fb26b3d06afae0a7165aa09dbb6b7cb1e
                 sourceRegisterId: Wallet
                 targetRegisterId: Food expenses
         "400":
@@ -176,6 +188,9 @@ paths:
                 id: 2
                 timestamp: "2026-06-01T10:15:30Z"
                 amount: 1500.00
+                operationType: TRANSFER
+                sequenceNumber: 2
+                operationHash: e324da21bb55dc8730068ce1f132a61fb26b3d06afae0a7165aa09dbb6b7cb1e
                 sourceRegisterId: Wallet
                 targetRegisterId: Food expenses
         "404":
@@ -325,6 +340,13 @@ components:
       required:
         - id
         - balance
+    OperationType:
+      description: Balance-changing operation type.
+      type: string
+      enum:
+        - RECHARGE
+        - TRANSFER
+      example: TRANSFER
     OperationResponse:
       description: Balance operation
       type: object
@@ -345,6 +367,19 @@ components:
           multipleOf: 0.01
           description: The operation amount as a decimal amount with at most 17 integer digits and two fractional digits.
           example: 1500.00
+        operationType:
+          $ref: "#/components/schemas/OperationType"
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: The operation's monotonic auditable ledger position.
+          example: 42
+        operationHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The lowercase SHA-256 hash linking this operation into the auditable ledger.
+          example: a91f0dfd3db44f3bc7bd2cc85a99ed92fdcf18348f3e98d187ca41971f48d02f
         sourceRegisterId:
           type: string
           nullable: true
@@ -359,6 +394,9 @@ components:
         - id
         - timestamp
         - amount
+        - operationType
+        - sequenceNumber
+        - operationHash
     RechargeCommand:
       description: Recharge command
       type: object

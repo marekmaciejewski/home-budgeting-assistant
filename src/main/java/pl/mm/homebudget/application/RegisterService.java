@@ -1,5 +1,6 @@
 package pl.mm.homebudget.application;
 
+import lombok.RequiredArgsConstructor;
 import pl.mm.homebudget.api.dto.OperationResponse;
 import pl.mm.homebudget.api.dto.RegisterResponse;
 import pl.mm.homebudget.domain.InvalidTransferException;
@@ -10,7 +11,6 @@ import pl.mm.homebudget.persistence.RegisterConverter;
 import pl.mm.homebudget.persistence.RegisterRepository;
 import pl.mm.homebudget.persistence.entity.Operation;
 import pl.mm.homebudget.persistence.entity.Register;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
@@ -26,6 +26,7 @@ public class RegisterService {
     private final RegisterRepository registerRepository;
     private final OperationRepository operationRepository;
     private final RegisterConverter converter;
+    private final OperationLedgerService operationLedgerService;
 
     @Transactional
     public Mono<OperationResponse> recharge(String registerId, BigDecimal amount) {
@@ -36,8 +37,10 @@ public class RegisterService {
     private Mono<Operation> applyRecharge(String registerId, BigDecimal amount) {
         return Mono.zip(
                         getActiveRegister(registerId),
-                        Mono.fromSupplier(() -> converter.createOperation(amount)))
-                .map(converter::applyRechargeToRegister)
+                        Mono.fromSupplier(() -> converter.createRechargeOperation(amount, registerId)))
+                .delayUntil(inputs -> Mono.when(
+                        Mono.fromRunnable(() -> converter.applyRechargeToRegister(inputs)),
+                        operationLedgerService.prepareForAppend(inputs.getT2())))
                 .flatMap(inputs -> saveRecharge(inputs.getT1(), inputs.getT2()));
     }
 
@@ -47,19 +50,22 @@ public class RegisterService {
     }
 
     @Transactional
-    public Mono<OperationResponse> transfer(String sourceRegister, String targetRegister, BigDecimal amount) {
-        return applyTransfer(sourceRegister, targetRegister, amount)
+    public Mono<OperationResponse> transfer(String sourceRegisterId, String targetRegisterId, BigDecimal amount) {
+        return applyTransfer(sourceRegisterId, targetRegisterId, amount)
                 .map(converter::toResponse);
     }
 
-    private Mono<Operation> applyTransfer(String sourceRegister, String targetRegister, BigDecimal amount) {
+    private Mono<Operation> applyTransfer(String sourceRegisterId, String targetRegisterId, BigDecimal amount) {
         return Mono.zip(
-                        getActiveRegister(sourceRegister),
-                        getActiveRegister(targetRegister),
-                        Mono.fromSupplier(() -> converter.createOperation(amount)))
-                .doFirst(() -> validateDifferentTransferRegisters(sourceRegister, targetRegister))
-                .map(this::validateSourceRegisterHasSufficientBalance)
-                .map(converter::applyTransferToRegisters)
+                        getActiveRegister(sourceRegisterId),
+                        getActiveRegister(targetRegisterId),
+                        Mono.fromSupplier(() -> converter.createTransferOperation(
+                                amount, sourceRegisterId, targetRegisterId)))
+                .doFirst(() -> validateDifferentTransferRegisters(sourceRegisterId, targetRegisterId))
+                .doOnNext(this::validateSourceRegisterHasSufficientBalance)
+                .delayUntil(inputs -> Mono.when(
+                        Mono.fromRunnable(() -> converter.applyTransferToRegisters(inputs)),
+                        operationLedgerService.prepareForAppend(inputs.getT3())))
                 .flatMap(inputs -> saveTransfer(inputs.getT1(), inputs.getT2(), inputs.getT3()));
     }
 
@@ -69,14 +75,12 @@ public class RegisterService {
         }
     }
 
-    private Tuple3<Register, Register, Operation> validateSourceRegisterHasSufficientBalance(
-            Tuple3<Register, Register, Operation> inputs) {
+    private void validateSourceRegisterHasSufficientBalance(Tuple3<Register, Register, Operation> inputs) {
         Register source = inputs.getT1();
         Operation transfer = inputs.getT3();
         if (source.getBalance().compareTo(transfer.getAmount()) < 0) {
             throw new InvalidTransferException(source.getId() + " register has insufficient balance");
         }
-        return inputs;
     }
 
     private Mono<Operation> saveTransfer(Register source, Register target, Operation transfer) {
@@ -104,7 +108,7 @@ public class RegisterService {
     }
 
     public Flux<OperationResponse> getOperations() {
-        return operationRepository.findAll()
+        return operationRepository.findAllByOrderBySequenceNumberAsc()
                 .map(converter::toResponse);
     }
 
