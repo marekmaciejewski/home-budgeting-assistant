@@ -13,6 +13,8 @@ public interface OperationRepository extends ReactiveCrudRepository<Operation, L
 
     Flux<Operation> findAllByOrderBySequenceNumberAsc();
 
+    Mono<Operation> findBySequenceNumber(Long sequenceNumber);
+
     Mono<Operation> findFirstByOrderBySequenceNumberAsc();
 
     Mono<Operation> findFirstByOrderBySequenceNumberDesc();

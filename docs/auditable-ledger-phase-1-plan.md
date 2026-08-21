@@ -8,7 +8,7 @@ Implement the first usable backend slice of the auditable ledger: schema fields,
 SHA-256 hashing, startup backfill for existing operations, and automatic hash-chaining for newly created recharges and
 transfers.
 
-This phase will not add `/ledger/head`, `/ledger/verify`, operation proof endpoints, UI changes, or demo tamper
+This phase will not add `/ledger/verify`, operation proof endpoints, UI changes, or demo tamper
 simulation yet.
 
 ## Key Changes

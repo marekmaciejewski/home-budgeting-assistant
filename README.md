@@ -72,6 +72,7 @@ Maven generates the Spring WebFlux API interfaces and request/response DTOs from
 
 - [Auditable ledger master plan](docs/auditable-ledger-master-plan.md)
 - [Auditable ledger Phase 1 plan](docs/auditable-ledger-phase-1-plan.md)
+- [Auditable ledger Phase 2 plan](docs/auditable-ledger-phase-2-plan.md)
 - [Auditability UI plan](docs/auditability-ui-plan.md)
 
 The Codex app's `[Use plan mode]` button is useful for work like the auditable ledger feature: use it before each

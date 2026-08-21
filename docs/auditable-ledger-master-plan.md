@@ -166,13 +166,11 @@ Add ledger-focused endpoints:
 
 | method | path | purpose |
 |--------|------|---------|
-| `GET` | `/ledger/head` | Return current ledger head and high-level status. |
-| `GET` | `/ledger/verify` | Verify the full chain and return diagnostics. |
+| `GET` | `/ledger/verify` | Verify the full chain and return current ledger head diagnostics. |
 | `GET` | `/operations/{operationId}/proof` | Return technical proof details for one operation. |
 
 Potential response schemas:
 
-- `LedgerHeadResponse`
 - `LedgerVerificationResponse`
 - `OperationProofResponse`
 - `LedgerMismatch`
@@ -287,8 +285,7 @@ benefit without carrying distributed-system complexity.
 The first complete version is done when:
 
 - New recharge and transfer operations are hash-chained.
-- The ledger head can be retrieved through the API.
-- The full chain can be verified through the API.
+- The ledger head and full-chain verification diagnostics can be retrieved through the API.
 - Tampering with a historical operation causes verification to fail.
 - A demo/dev-only tamper simulation can create a visible mismatch without manual database access.
 - Operation history shows clear audit status in the UI.

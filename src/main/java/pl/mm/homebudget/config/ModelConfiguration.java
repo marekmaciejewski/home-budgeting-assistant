@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Scope;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Configuration
 @RequiredArgsConstructor
@@ -26,7 +27,7 @@ public class ModelConfiguration {
     public Operation operation(
             BigDecimal amount, OperationType operationType, String sourceRegisterId, String targetRegisterId) {
         Operation operation = new Operation();
-        operation.setTimestamp(Instant.now(clock));
+        operation.setTimestamp(Instant.now(clock).truncatedTo(ChronoUnit.MICROS));
         operation.setAmount(amount);
         operation.setOperationType(operationType);
         operation.setSourceRegisterId(sourceRegisterId);
