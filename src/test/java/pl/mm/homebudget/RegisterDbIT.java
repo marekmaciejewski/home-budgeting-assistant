@@ -6,21 +6,17 @@ import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import pl.mm.homebudget.api.dto.OperationResponse;
 import pl.mm.homebudget.api.dto.OperationType;
+import pl.mm.testsupport.FixedClockTestConfiguration;
 
 import java.math.BigDecimal;
 import java.net.URI;
-import java.time.Clock;
-import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
@@ -30,13 +26,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.from;
 import static org.junit.jupiter.api.DynamicContainer.dynamicContainer;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
+import static pl.mm.testsupport.FixedClockTestConfiguration.FIXED_INSTANT;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
+@Import(FixedClockTestConfiguration.class)
 class RegisterDbIT {
 
-    private static final Instant OPERATION_INSTANT = Instant.parse("2026-06-01T10:15:30Z");
-    private static final OffsetDateTime OPERATION_TIMESTAMP = OPERATION_INSTANT.atOffset(ZoneOffset.UTC);
     private static final String WALLET_RECHARGE_HASH =
             "bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c";
     private static final String WALLET_TO_FOOD_EXPENSES_TRANSFER_HASH =
@@ -55,16 +51,6 @@ class RegisterDbIT {
     private WebTestClient testClient;
 
     private long expectedNextSequenceNumber = 1;
-
-    @TestConfiguration
-    static class FixedClockConfiguration {
-
-        @Bean
-        @Primary
-        Clock testClock() {
-            return Clock.fixed(OPERATION_INSTANT, ZoneOffset.UTC);
-        }
-    }
 
     @TestFactory
     Stream<DynamicNode> demoScenario() {
@@ -247,7 +233,7 @@ class RegisterDbIT {
         return assertThat(operation)
                 .isNotNull()
                 .usingComparatorForType(BigDecimal::compareTo, BigDecimal.class)
-                .returns(OPERATION_TIMESTAMP, from(OperationResponse::getTimestamp))
+                .returns(FIXED_INSTANT.atOffset(ZoneOffset.UTC), from(OperationResponse::getTimestamp))
                 .returns(BigDecimal.valueOf(amount), from(OperationResponse::getAmount))
                 .returns(operationType, from(OperationResponse::getOperationType))
                 .returns(sequenceNumber, from(OperationResponse::getSequenceNumber))

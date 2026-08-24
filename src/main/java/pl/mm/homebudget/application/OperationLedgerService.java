@@ -12,27 +12,17 @@ import reactor.core.publisher.Mono;
 public class OperationLedgerService {
 
     private final OperationRepository operationRepository;
-    private final LedgerHasher ledgerHasher;
+    private final OperationLedgerAssigner operationLedgerAssigner;
 
     public Mono<Operation> prepareForAppend(Operation operation) {
         return operationRepository.findFirstByOrderBySequenceNumberDesc()
-                .map(head -> assign(operation, head.getSequenceNumber() + 1, head.getOperationHash()))
-                .defaultIfEmpty(assign(operation, 1L, LedgerHasher.GENESIS_HASH));
-    }
-
-    private Operation assign(Operation operation, long sequenceNumber, String previousHash) {
-        String payloadHash = ledgerHasher.payloadHash(
-                operation.getOperationType(),
-                operation.getTimestamp(),
-                operation.getAmount(),
-                operation.getSourceRegisterId(),
-                operation.getTargetRegisterId());
-        String operationHash = ledgerHasher.operationHash(sequenceNumber, previousHash, payloadHash);
-
-        operation.setSequenceNumber(sequenceNumber);
-        operation.setPreviousHash(previousHash);
-        operation.setPayloadHash(payloadHash);
-        operation.setOperationHash(operationHash);
-        return operation;
+                .map(head -> operationLedgerAssigner.assign(
+                        operation,
+                        head.getSequenceNumber() + 1,
+                        head.getOperationHash()))
+                .switchIfEmpty(Mono.fromSupplier(() -> operationLedgerAssigner.assign(
+                        operation,
+                        1L,
+                        LedgerHasher.GENESIS_HASH)));
     }
 }

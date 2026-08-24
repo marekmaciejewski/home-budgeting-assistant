@@ -1,57 +1,45 @@
 package pl.mm.homebudget.api.ledger;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.test.json.JsonCompareMode;
+import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import pl.mm.homebudget.api.dto.OperationResponse;
-import pl.mm.homebudget.api.dto.OperationType;
-import pl.mm.homebudget.domain.LedgerHasher;
+import pl.mm.testsupport.FixedClockTestConfiguration;
+import pl.mm.testsupport.LedgerHttpTestConfiguration;
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "spring.r2dbc.url=r2dbc:h2:mem:///ledgerapitest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-                "spring.liquibase.url=jdbc:h2:mem:ledgerapitest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+                "spring.r2dbc.url=r2dbc:h2:mem:///validledgerapitest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
+                "spring.liquibase.url=jdbc:h2:mem:validledgerapitest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
         })
 @AutoConfigureWebTestClient
+@Import({FixedClockTestConfiguration.class, LedgerHttpTestConfiguration.class})
+@SqlConfig(dataSource = "sqlDataSource")
+@Sql("/db/test-data/ledger/reset-ledger.sql")
 class LedgerControllerIT {
 
-    private static final LedgerHasher LEDGER_HASHER = new LedgerHasher();
+    private static final String GENESIS_HASH =
+            "0000000000000000000000000000000000000000000000000000000000000000";
+    private static final String RECHARGE_PAYLOAD_HASH =
+            "296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04";
+    private static final String RECHARGE_OPERATION_HASH =
+            "bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c";
+    private static final String TRANSFER_OPERATION_HASH =
+            "e324da21bb55dc8730068ce1f132a61fb26b3d06afae0a7165aa09dbb6b7cb1e";
 
     @Autowired
     private WebTestClient testClient;
 
-    @Autowired
-    private DatabaseClient databaseClient;
-
-    @BeforeEach
-    void resetState() {
-        databaseClient.sql("DELETE FROM OPERATIONS")
-                .fetch()
-                .rowsUpdated()
-                .then(databaseClient.sql("""
-                        UPDATE REGISTERS
-                        SET BALANCE = CASE ID
-                            WHEN 'Wallet' THEN 1000.00
-                            WHEN 'Savings' THEN 5000.00
-                            WHEN 'Insurance policy' THEN 0.00
-                            WHEN 'Food expenses' THEN 0.00
-                            ELSE BALANCE
-                        END
-                        """)
-                        .fetch()
-                        .rowsUpdated())
-                .block();
-    }
-
     @Test
-    void verifyLedgerReturnsVerifiedGenesisStateForEmptyLedger() {
+    void verifyLedger_returnsVerifiedGenesisState_forEmptyLedger() {
         testClient.get().uri("/ledger/verify")
                 .exchange()
                 .expectStatus().isOk()
@@ -64,16 +52,16 @@ class LedgerControllerIT {
                           "verifiedThroughSequence": 0,
                           "latestSequenceNumber": 0,
                           "ledgerHeadHash": "%s",
+                          "checkedAt": "2026-06-01T10:15:30Z",
                           "mismatch": null
                         }
-                        """.formatted(LedgerHasher.GENESIS_HASH), JsonCompareMode.LENIENT)
-                .jsonPath("$.checkedAt").exists();
+                        """.formatted(GENESIS_HASH), JsonCompareMode.STRICT);
     }
 
     @Test
-    void verifyLedgerReturnsVerifiedChainAfterRechargeAndTransfer() {
+    void verifyLedger_returnsVerifiedChain_afterRechargeAndTransfer() {
         createRecharge();
-        OperationResponse transfer = createTransfer();
+        createTransfer();
 
         testClient.get().uri("/ledger/verify")
                 .exchange()
@@ -87,52 +75,15 @@ class LedgerControllerIT {
                           "verifiedThroughSequence": 2,
                           "latestSequenceNumber": 2,
                           "ledgerHeadHash": "%s",
+                          "checkedAt": "2026-06-01T10:15:30Z",
                           "mismatch": null
                         }
-                        """.formatted(transfer.getOperationHash()), JsonCompareMode.LENIENT)
-                .jsonPath("$.checkedAt").exists();
+                        """.formatted(TRANSFER_OPERATION_HASH), JsonCompareMode.STRICT);
     }
 
     @Test
-    void verifyLedgerReturnsInvalidAfterDirectTestOnlyDatabaseTamper() {
-        createRecharge();
-        OperationResponse transfer = createTransfer();
-        tamperAmount(transfer.getId());
-
-        testClient.get().uri("/ledger/verify")
-                .exchange()
-                .expectStatus().isOk()
-                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-                .expectBody()
-                .json("""
-                        {
-                          "status": "INVALID",
-                          "operationCount": 2,
-                          "verifiedThroughSequence": 1,
-                          "latestSequenceNumber": 2,
-                          "ledgerHeadHash": "%s",
-                          "mismatch": {
-                            "sequenceNumber": 2,
-                            "operationId": %d,
-                            "reason": "Stored payload hash does not match the recalculated payload hash."
-                          }
-                        }
-                        """.formatted(transfer.getOperationHash(), transfer.getId()),
-                        JsonCompareMode.LENIENT)
-                .jsonPath("$.checkedAt").exists();
-    }
-
-    @Test
-    void getOperationProofReturnsFullProofForValidOperation() {
+    void getOperationProof_returnsFullProof_forValidOperation() {
         OperationResponse recharge = createRecharge();
-        String canonicalTimestamp = recharge.getTimestamp().toInstant().toString();
-        String payloadHash = LEDGER_HASHER.payloadHash(
-                OperationType.RECHARGE,
-                recharge.getTimestamp().toInstant(),
-                recharge.getAmount(),
-                null,
-                "Wallet");
-        String operationHash = LEDGER_HASHER.operationHash(1, LedgerHasher.GENESIS_HASH, payloadHash);
 
         testClient.get().uri("/operations/{operationId}/proof", recharge.getId())
                 .exchange()
@@ -143,18 +94,19 @@ class LedgerControllerIT {
                         {
                           "operationId": %d,
                           "operationType": "RECHARGE",
+                          "timestamp": "2026-06-01T10:15:30Z",
                           "amount": 2500.00,
                           "sourceRegisterId": null,
                           "targetRegisterId": "Wallet",
                           "sequenceNumber": 1,
-                          "previousHash": "%s",
-                          "payloadHash": "%s",
-                          "operationHash": "%s",
-                          "canonicalPayload": "ledgerVersion=1\\noperationType=RECHARGE\\ntimestamp=%s\\namount=2500.00\\nsourceRegisterId=null\\ntargetRegisterId=Wallet",
-                          "canonicalOperationHashInput": "chainVersion=home-budget-ledger-v1\\nsequenceNumber=1\\npreviousHash=%s\\npayloadHash=%s",
-                          "expectedPreviousHash": "%s",
-                          "expectedPayloadHash": "%s",
-                          "expectedOperationHash": "%s",
+                          "previousHash": "%2$s",
+                          "payloadHash": "%3$s",
+                          "operationHash": "%4$s",
+                          "canonicalPayload": "ledgerVersion=1\\noperationType=RECHARGE\\ntimestamp=2026-06-01T10:15:30Z\\namount=2500.00\\nsourceRegisterId=null\\ntargetRegisterId=Wallet",
+                          "canonicalOperationHashInput": "chainVersion=home-budget-ledger-v1\\nsequenceNumber=1\\npreviousHash=%2$s\\npayloadHash=%3$s",
+                          "expectedPreviousHash": "%2$s",
+                          "expectedPayloadHash": "%3$s",
+                          "expectedOperationHash": "%4$s",
                           "previousHashValid": true,
                           "payloadHashValid": true,
                           "operationHashValid": true,
@@ -162,63 +114,13 @@ class LedgerControllerIT {
                         }
                         """.formatted(
                         recharge.getId(),
-                        LedgerHasher.GENESIS_HASH,
-                        payloadHash,
-                        operationHash,
-                        canonicalTimestamp,
-                        LedgerHasher.GENESIS_HASH,
-                        payloadHash,
-                        LedgerHasher.GENESIS_HASH,
-                        payloadHash,
-                        operationHash), JsonCompareMode.LENIENT)
-                .jsonPath("$.timestamp").exists();
+                        GENESIS_HASH,
+                        RECHARGE_PAYLOAD_HASH,
+                        RECHARGE_OPERATION_HASH), JsonCompareMode.STRICT);
     }
 
     @Test
-    void getOperationProofReturnsInvalidProofWhenPreviousOperationIsMissing() {
-        OperationResponse recharge = createRecharge();
-        OperationResponse transfer = createTransfer();
-        deleteOperation(recharge.getId());
-        String canonicalTimestamp = transfer.getTimestamp().toInstant().toString();
-        String payloadHash = LEDGER_HASHER.payloadHash(
-                OperationType.TRANSFER,
-                transfer.getTimestamp().toInstant(),
-                transfer.getAmount(),
-                "Wallet",
-                "Food expenses");
-
-        testClient.get().uri("/operations/{operationId}/proof", transfer.getId())
-                .exchange()
-                .expectStatus().isOk()
-                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-                .expectBody()
-                .json("""
-                        {
-                          "operationId": %d,
-                          "operationType": "TRANSFER",
-                          "amount": 1500.00,
-                          "sourceRegisterId": "Wallet",
-                          "targetRegisterId": "Food expenses",
-                          "sequenceNumber": 2,
-                          "canonicalPayload": "ledgerVersion=1\\noperationType=TRANSFER\\ntimestamp=%s\\namount=1500.00\\nsourceRegisterId=Wallet\\ntargetRegisterId=Food expenses",
-                          "canonicalOperationHashInput": null,
-                          "expectedPreviousHash": null,
-                          "expectedPayloadHash": "%s",
-                          "expectedOperationHash": null,
-                          "previousHashValid": false,
-                          "payloadHashValid": true,
-                          "operationHashValid": false,
-                          "valid": false
-                        }
-                        """.formatted(
-                        transfer.getId(),
-                        canonicalTimestamp,
-                        payloadHash), JsonCompareMode.LENIENT)
-                .jsonPath("$.timestamp").exists();
-    }
-
-    @Test
-    void getOperationProofReturnsNotFoundForUnknownOperation() {
+    void getOperationProof_returnsNotFound_forUnknownOperation() {
         testClient.get().uri("/operations/{operationId}/proof", 999L)
                 .exchange()
                 .expectStatus().isNotFound()
@@ -245,31 +147,12 @@ class LedgerControllerIT {
                 .getResponseBody();
     }
 
-    private OperationResponse createTransfer() {
-        return testClient.post().uri("/operations/transfers")
+    private void createTransfer() {
+        testClient.post().uri("/operations/transfers")
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue("{\"sourceRegisterId\":\"Wallet\",\"targetRegisterId\":\"Food expenses\",\"amount\":1500}")
                 .exchange()
                 .expectStatus().isCreated()
-                .expectBody(OperationResponse.class)
-                .returnResult()
-                .getResponseBody();
+                .expectBody(OperationResponse.class);
     }
-
-    private void tamperAmount(Long operationId) {
-        databaseClient.sql("UPDATE OPERATIONS SET AMOUNT = 1501.00 WHERE ID = :operationId")
-                .bind("operationId", operationId)
-                .fetch()
-                .rowsUpdated()
-                .block();
-    }
-
-    private void deleteOperation(Long operationId) {
-        databaseClient.sql("DELETE FROM OPERATIONS WHERE ID = :operationId")
-                .bind("operationId", operationId)
-                .fetch()
-                .rowsUpdated()
-                .block();
-    }
-
 }

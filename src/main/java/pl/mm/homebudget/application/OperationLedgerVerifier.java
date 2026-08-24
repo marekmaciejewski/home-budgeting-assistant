@@ -70,19 +70,12 @@ class OperationLedgerVerifier {
             Operation operation,
             long expectedSequenceNumber,
             long storedSequenceNumber) {
-        if (storedSequenceNumber > expectedSequenceNumber) {
-            return createMismatch(
-                    expectedSequenceNumber,
-                    null,
-                    "Missing operation for sequence " + expectedSequenceNumber + ".");
-        }
-        if (expectedSequenceNumber == 1) {
-            return createMismatch(expectedSequenceNumber, operation.getId(), FIRST_SEQUENCE_MISMATCH);
-        }
-        return createMismatch(
+        return storedSequenceNumber < 1
+                ? createMismatch(expectedSequenceNumber, operation.getId(), FIRST_SEQUENCE_MISMATCH)
+                : createMismatch(
                 expectedSequenceNumber,
-                operation.getId(),
-                "Expected ledger sequence " + expectedSequenceNumber + " but found " + storedSequenceNumber + ".");
+                null,
+                "Missing operation for sequence " + expectedSequenceNumber + ".");
     }
 
     private String calculateExpectedPayloadHash(Operation operation) {

@@ -1,16 +1,21 @@
 package pl.mm.homebudget.domain;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import pl.mm.homebudget.api.dto.OperationType;
+import pl.mm.homebudget.config.RegisterConfiguration;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@SpringJUnitConfig(classes = {RegisterConfiguration.class, LedgerHasher.class})
 class LedgerHasherTest {
 
-    private final LedgerHasher ledgerHasher = new LedgerHasher();
+    @Autowired
+    private LedgerHasher ledgerHasher;
 
     @Test
     void hashesRechargeVector() {

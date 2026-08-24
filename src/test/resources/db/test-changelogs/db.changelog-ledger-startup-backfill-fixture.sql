@@ -10,21 +10,21 @@ INSERT INTO OPERATION (
 ) VALUES
 (
     101,
-    TIMESTAMP '2026-06-01 10:15:30',
+    TIMESTAMP WITH TIME ZONE '2026-06-01 10:15:30+00:00',
     2500.00,
     NULL,
     'Wallet'
 ),
 (
     102,
-    TIMESTAMP '2026-06-01 10:00:00',
+    TIMESTAMP WITH TIME ZONE '2026-06-01 10:00:00+00:00',
     100.00,
     'Wallet',
     'Savings'
 ),
 (
     103,
-    TIMESTAMP '2026-06-01 10:00:00',
+    TIMESTAMP WITH TIME ZONE '2026-06-01 10:00:00+00:00',
     50.00,
     NULL,
     'Savings'
