@@ -1,13 +1,20 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "./api";
-import type { OperationResponse, RechargeCommand, RegisterResponse, TransferCommand } from "./apiTypes";
+import type {
+  LedgerVerificationResponse,
+  OperationResponse,
+  RechargeCommand,
+  RegisterResponse,
+  TransferCommand
+} from "./apiTypes";
+import { AuditTrail } from "./components/AuditTrail";
 import { AppHeader } from "./components/AppHeader";
 import { OperationsHistory } from "./components/OperationsHistory";
 import { RechargeForm } from "./components/RechargeForm";
 import { RegisterDashboard } from "./components/RegisterDashboard";
 import { StatusAlerts } from "./components/StatusAlerts";
 import { TransferForm } from "./components/TransferForm";
-import type { SubmitAction } from "./types/ui";
+import type { LedgerVerificationState, SubmitAction } from "./types/ui";
 import { formatAmount } from "./utils/formatters";
 import { toSortedOperations } from "./utils/operations";
 
@@ -22,27 +29,48 @@ function messageFromError(error: unknown): string {
 async function fetchDemoData(): Promise<{
   registers: RegisterResponse[];
   operations: OperationResponse[];
+  ledgerState: LedgerVerificationState;
 }> {
-  const [nextRegisters, nextOperations] = await Promise.all([
+  const [nextRegisters, nextOperations, ledgerState] = await Promise.all([
     api.getRegisters(),
-    api.getOperations()
+    api.getOperations(),
+    fetchLedgerVerification()
   ]);
 
   return {
     registers: nextRegisters,
-    operations: toSortedOperations(nextOperations)
+    operations: toSortedOperations(nextOperations),
+    ledgerState
   };
+}
+
+async function fetchLedgerVerification(): Promise<LedgerVerificationState> {
+  try {
+    return toLedgerVerificationState(await api.verifyLedger());
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
+
+function toLedgerVerificationState(
+  verification: LedgerVerificationResponse
+): LedgerVerificationState {
+  return verification.status === "VERIFIED"
+    ? { kind: "verified", data: verification }
+    : { kind: "invalid", data: verification };
 }
 
 export default function App() {
   const [registers, setRegisters] = useState<RegisterResponse[]>([]);
   const [operations, setOperations] = useState<OperationResponse[]>([]);
+  const [ledgerState, setLedgerState] = useState<LedgerVerificationState>({ kind: "pending" });
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showColdStartHint, setShowColdStartHint] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [submitAction, setSubmitAction] = useState<SubmitAction>(null);
+  const ledgerRequestVersion = useRef(0);
 
   const isRenderBackend = api.baseUrl.includes("onrender.com");
   // TODO: Replace this URL-based assumption with backend-provided runtime metadata.
@@ -50,9 +78,12 @@ export default function App() {
   const canResetDemo = isEphemeralDemo;
 
   const loadDemoData = useCallback(async () => {
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
     setErrorMessage(null);
     setShowColdStartHint(false);
     setIsRefreshing(true);
+    setLedgerState({ kind: "pending" });
 
     const coldStartTimer = globalThis.setTimeout(() => {
       setShowColdStartHint(true);
@@ -62,8 +93,16 @@ export default function App() {
       const demoData = await fetchDemoData();
       setRegisters(demoData.registers);
       setOperations(demoData.operations);
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState(demoData.ledgerState);
+      }
     } catch (error) {
       setErrorMessage(messageFromError(error));
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState({ kind: "unavailable" });
+      }
     } finally {
       globalThis.clearTimeout(coldStartTimer);
       setIsRefreshing(false);
@@ -72,6 +111,8 @@ export default function App() {
 
   useEffect(() => {
     let isCurrent = true;
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
 
     const coldStartTimer = globalThis.setTimeout(() => {
       if (isCurrent) {
@@ -89,9 +130,17 @@ export default function App() {
 
         setRegisters(demoData.registers);
         setOperations(demoData.operations);
+
+        if (ledgerRequestVersion.current === currentLedgerRequest) {
+          setLedgerState(demoData.ledgerState);
+        }
       } catch (error) {
         if (isCurrent) {
           setErrorMessage(messageFromError(error));
+
+          if (ledgerRequestVersion.current === currentLedgerRequest) {
+            setLedgerState({ kind: "unavailable" });
+          }
         }
       } finally {
         globalThis.clearTimeout(coldStartTimer);
@@ -106,6 +155,7 @@ export default function App() {
 
     return () => {
       isCurrent = false;
+      ledgerRequestVersion.current += 1;
       globalThis.clearTimeout(coldStartTimer);
     };
   }, []);
@@ -171,6 +221,10 @@ export default function App() {
     setFeedbackMessage(null);
     setSubmitAction("reset");
     setShowColdStartHint(false);
+    setLedgerState({ kind: "pending" });
+
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
 
     const coldStartTimer = globalThis.setTimeout(() => {
       setShowColdStartHint(true);
@@ -178,15 +232,38 @@ export default function App() {
 
     try {
       const restoredRegisters = await api.resetDemo();
-      const nextOperations = await api.getOperations();
+      const [nextOperations, nextLedgerState] = await Promise.all([
+        api.getOperations(),
+        fetchLedgerVerification()
+      ]);
       setRegisters(restoredRegisters);
       setOperations(toSortedOperations(nextOperations));
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState(nextLedgerState);
+      }
       setFeedbackMessage("Demo state reset to the seeded register balances.");
     } catch (error) {
       setErrorMessage(messageFromError(error));
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState({ kind: "unavailable" });
+      }
     } finally {
       globalThis.clearTimeout(coldStartTimer);
       setSubmitAction(null);
+    }
+  }
+
+  async function handleVerifyLedger() {
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
+    setLedgerState({ kind: "pending" });
+
+    const nextLedgerState = await fetchLedgerVerification();
+
+    if (ledgerRequestVersion.current === currentLedgerRequest) {
+      setLedgerState(nextLedgerState);
     }
   }
 
@@ -201,6 +278,7 @@ export default function App() {
         isResetting={submitAction === "reset"}
         isInitialLoading={isInitialLoading}
         isBusy={submitAction !== null}
+        ledgerState={ledgerState}
         onRefresh={() => {
           setFeedbackMessage(null);
           void loadDemoData();
@@ -226,6 +304,12 @@ export default function App() {
             />
             <div className="mt-4">
               <OperationsHistory operations={operations} isLoading={isInitialLoading} />
+            </div>
+            <div className="mt-4">
+              <AuditTrail
+                ledgerState={ledgerState}
+                onVerify={() => void handleVerifyLedger()}
+              />
             </div>
           </div>
 

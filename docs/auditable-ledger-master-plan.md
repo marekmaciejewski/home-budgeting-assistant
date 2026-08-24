@@ -255,7 +255,7 @@ reset should also leave the ledger empty and ready for a fresh genesis-linked fi
 Frontend work should follow the backend/API foundation:
 
 1. Add generated API types for ledger responses.
-2. Fetch ledger head alongside registers and operations.
+2. Fetch ledger verification alongside registers and operations; use its ledger head fields for UI status.
 3. Show a compact ledger status in the header.
 4. Add verification badges to operation rows.
 5. Add expandable operation proof details.

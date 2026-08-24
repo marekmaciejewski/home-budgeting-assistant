@@ -1,4 +1,6 @@
 import type {
+  LedgerVerificationResponse,
+  OperationProofResponse,
   OperationResponse,
   ProblemDetail,
   RechargeCommand,
@@ -96,6 +98,9 @@ export const api = {
   baseUrl: apiBaseUrl,
   getRegisters: () => request<RegisterResponse[]>("/registers"),
   getOperations: () => request<OperationResponse[]>("/operations"),
+  verifyLedger: () => request<LedgerVerificationResponse>("/ledger/verify"),
+  getOperationProof: (operationId: number) =>
+    request<OperationProofResponse>(`/operations/${operationId}/proof`),
   createRecharge: (command: RechargeCommand) =>
     jsonRequest<OperationResponse>("/operations/recharges", command),
   createTransfer: (command: TransferCommand) =>

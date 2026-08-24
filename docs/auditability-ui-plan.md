@@ -174,6 +174,15 @@ Do this after backend verification is stable. Otherwise, two moving targets will
 
 ## API Data Needed
 
+Phase 2 currently exposes the ledger data through:
+
+- `GET /ledger/verify`, which returns verification status, mismatch diagnostics, latest sequence number, and
+  `ledgerHeadHash`.
+- `GET /operations/{operationId}/proof`, which returns detailed proof material for one operation.
+
+There is no separate `GET /ledger/head` endpoint. Use `GET /ledger/verify` whenever the UI needs ledger status or head
+data.
+
 Minimum list data on each operation:
 
 - `operationType`
@@ -221,13 +230,14 @@ The first UI implementation can be additive and should avoid changing the rechar
 
 ## Implementation Order
 
-1. Add API client calls for ledger head, verification, and operation proof.
-2. Load ledger head with initial dashboard data.
-3. Add header status.
-4. Add operation row sequence/hash metadata.
-5. Add expandable proof details.
-6. Add Audit Trail panel.
-7. Add browser-side verification and copy/export actions.
+1. Add API client calls for ledger verification and operation proof.
+2. Load ledger verification data with initial dashboard data.
+3. Refresh ledger verification after recharge, transfer, manual refresh, and demo reset.
+4. Add header status from `LedgerVerificationResponse`.
+5. Add operation row sequence/hash metadata from `OperationResponse`.
+6. Add expandable proof details from `OperationProofResponse`.
+7. Add an Audit Trail panel using `LedgerVerificationResponse` for status, head hash, and mismatch details.
+8. Add browser-side verification and copy/export actions in a later slice.
 
 ## Acceptance Criteria
 
