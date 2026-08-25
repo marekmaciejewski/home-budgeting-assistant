@@ -209,6 +209,9 @@ mode: AMOUNT | PREVIOUS_HASH | PAYLOAD_HASH | OPERATION_HASH
 If neither operation ID nor sequence number is provided, choose a recent operation with enough surrounding chain context
 to produce a useful mismatch demonstration.
 
+See [Phase 5b demo tamper plan](auditable-ledger-phase-5b-demo-tamper-plan.md) for implementation details and a
+separate-session prompt.
+
 ### Phase 6: Tests
 
 Add focused coverage for:
