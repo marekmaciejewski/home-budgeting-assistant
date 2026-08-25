@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset Marek:ledger-startup-mixed-state-fixture
+--changeset Marek:ledger-startup-mixed-state-fixture context:@it-ledger-mixed-state
 --comment Mixed ledger state inserted after schema migration to assert startup failure
 INSERT INTO OPERATIONS (
     ID,

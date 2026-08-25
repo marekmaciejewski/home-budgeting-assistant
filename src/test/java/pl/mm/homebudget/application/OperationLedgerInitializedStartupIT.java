@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         properties = {
                 "spring.r2dbc.url=r2dbc:h2:mem:///ledgerinitializedstartup;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
                 "spring.liquibase.url=jdbc:h2:mem:ledgerinitializedstartup;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-                "spring.liquibase.change-log=classpath:/db/changelog/db.changelog-ledger-startup-initialized-test.yaml"
+                "spring.liquibase.contexts=it-ledger-initialized"
         })
 @AutoConfigureWebTestClient
 @Import(FixedClockTestConfiguration.class)

@@ -13,7 +13,7 @@ class OperationLedgerStartupFailureIT {
             .withPropertyValues(
                     "spring.r2dbc.url=r2dbc:h2:mem:///ledgerstartupfailure;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
                     "spring.liquibase.url=jdbc:h2:mem:ledgerstartupfailure;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-                    "spring.liquibase.change-log=classpath:/db/changelog/db.changelog-ledger-startup-mixed-state-test.yaml",
+                    "spring.liquibase.contexts=it-ledger-mixed-state",
                     "app.cors.allowed-origins=http://localhost");
 
     @Test

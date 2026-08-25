@@ -21,7 +21,7 @@ import static pl.mm.testsupport.FixedClockTestConfiguration.FIXED_INSTANT;
         properties = {
                 "spring.r2dbc.url=r2dbc:h2:mem:///ledgerstartupbackfill;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
                 "spring.liquibase.url=jdbc:h2:mem:ledgerstartupbackfill;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-                "spring.liquibase.change-log=classpath:/db/changelog/db.changelog-ledger-startup-backfill-test.yaml"
+                "spring.liquibase.contexts=it-ledger-backfill"
         })
 @AutoConfigureWebTestClient
 @Import(FixedClockTestConfiguration.class)

@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset Marek:ledger-startup-backfill-fixture
+--changeset Marek:ledger-startup-backfill-fixture context:@it-ledger-backfill
 --comment Legacy operations inserted before operation schema and ledger migrations
 INSERT INTO OPERATION (
     ID,

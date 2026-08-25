@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset Marek:ledger-startup-initialized-fixture
+--changeset Marek:ledger-startup-initialized-fixture context:@it-ledger-initialized
 --comment Initialized ledger inserted after ledger migrations to simulate an application restart
 INSERT INTO OPERATIONS (
     ID,
