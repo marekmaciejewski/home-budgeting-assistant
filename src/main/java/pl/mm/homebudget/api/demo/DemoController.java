@@ -1,16 +1,17 @@
 package pl.mm.homebudget.api.demo;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import pl.mm.homebudget.api.DemoApi;
 import pl.mm.homebudget.api.dto.RegisterResponse;
 import pl.mm.homebudget.application.DemoResetService;
+import pl.mm.homebudget.config.EphemeralStorageCondition;
 import reactor.core.publisher.Flux;
 
 @RestController
-@Profile("demo")
+@Conditional(EphemeralStorageCondition.class)
 @RequiredArgsConstructor
 public class DemoController implements DemoApi {
 

@@ -2,8 +2,10 @@ package pl.mm.homebudget.application;
 
 import lombok.RequiredArgsConstructor;
 import pl.mm.homebudget.api.dto.OperationResponse;
+import pl.mm.homebudget.api.dto.LedgerStatus;
 import pl.mm.homebudget.api.dto.RegisterResponse;
 import pl.mm.homebudget.domain.InvalidTransferException;
+import pl.mm.homebudget.domain.LedgerConflictException;
 import pl.mm.homebudget.domain.OperationNotFoundException;
 import pl.mm.homebudget.domain.RegisterNotFoundException;
 import pl.mm.homebudget.persistence.OperationRepository;
@@ -27,10 +29,12 @@ public class RegisterService {
     private final OperationRepository operationRepository;
     private final RegisterConverter converter;
     private final OperationLedgerService operationLedgerService;
+    private final OperationLedgerVerificationService operationLedgerVerificationService;
 
     @Transactional
     public Mono<OperationResponse> recharge(String registerId, BigDecimal amount) {
-        return applyRecharge(registerId, amount)
+        return requireValidLedger()
+                .then(applyRecharge(registerId, amount))
                 .map(converter::toResponse);
     }
 
@@ -51,7 +55,8 @@ public class RegisterService {
 
     @Transactional
     public Mono<OperationResponse> transfer(String sourceRegisterId, String targetRegisterId, BigDecimal amount) {
-        return applyTransfer(sourceRegisterId, targetRegisterId, amount)
+        return requireValidLedger()
+                .then(applyTransfer(sourceRegisterId, targetRegisterId, amount))
                 .map(converter::toResponse);
     }
 
@@ -116,5 +121,13 @@ public class RegisterService {
         return operationRepository.findById(operationId)
                 .switchIfEmpty(Mono.error(new OperationNotFoundException(operationId + " operation not found")))
                 .map(converter::toResponse);
+    }
+
+    private Mono<Void> requireValidLedger() {
+        return operationLedgerVerificationService.verifyLedger()
+                .flatMap(verification -> verification.getStatus() == LedgerStatus.VERIFIED
+                        ? Mono.empty()
+                        : Mono.error(new LedgerConflictException(
+                        "Ledger is invalid. Repair or reset it before creating new operations.")));
     }
 }

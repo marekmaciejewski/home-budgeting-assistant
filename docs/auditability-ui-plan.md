@@ -51,12 +51,12 @@ Behavior:
 
 Suggested states:
 
-| state | meaning | UI treatment |
-|-------|---------|--------------|
-| `verified` | Full chain verified. | Subtle success badge/check. |
-| `pending` | Verification is loading or has not been run. | Neutral spinner/text. |
-| `invalid` | Chain verification failed. | Clear warning/error badge. |
-| `unavailable` | Backend did not return ledger data. | Neutral warning, no panic copy. |
+| state         | meaning                                      | UI treatment                    |
+|---------------|----------------------------------------------|---------------------------------|
+| `verified`    | Full chain verified.                         | Subtle success badge/check.     |
+| `pending`     | Verification is loading or has not been run. | Neutral spinner/text.           |
+| `invalid`     | Chain verification failed.                   | Clear warning/error badge.      |
+| `unavailable` | Backend did not return ledger data.          | Neutral warning, no panic copy. |
 
 ### Operations History
 
@@ -106,7 +106,7 @@ Actions:
 - Copy ledger head
 - Export audit proof
 - Show technical details
-- Simulate mismatch, when demo tamper simulation is available
+- Simulate corruption, when showcase tamper simulation is available
 
 Mismatch content:
 
@@ -116,27 +116,26 @@ Expected previous hash: 91af...7710
 Stored previous hash:   b20d...88ca
 ```
 
-When invalid, balances should be visually marked as potentially unreliable. A warning near the register dashboard is
-more useful than hiding the balances.
+When invalid, keep balances readable while making the integrity failure clear in the header and Audit Trail. Disable
+balance-changing actions until repair or reset; do not add warning styling to every balance card.
 
-### Demo Tamper Simulation
+### Showcase Tamper Simulation
 
-If the backend exposes a demo/dev-only tamper simulation endpoint, surface it as a clearly labeled demo tool inside the
-Audit Trail view.
+If the backend advertises tamper simulation, surface it as a clearly labeled showcase tool inside the Audit Trail view.
 
 Suggested control:
 
 ```text
-Simulate mismatch
+Simulate corruption
 ```
 
 Behavior:
 
-- Show only when the backend indicates tamper simulation is available, or when the frontend is already in the hosted
-  ephemeral demo mode.
+- Show only when `GET /capabilities` indicates tamper simulation is available.
+- Offer the four fixed modes: amount, previous hash, payload hash, and operation hash.
 - Require a confirmation before running it.
 - After the request succeeds, automatically run ledger verification again.
-- Show the affected operation and the mismatched field.
+- Show a copyable receipt containing the affected operation, sequence, field, previous value, and new value.
 - Keep `Reset demo` nearby as the recovery path.
 - Do not show this action as part of normal recharge or transfer workflows.
 
@@ -146,11 +145,10 @@ Suggested success copy:
 Mismatch simulated at operation #37. Verification now reports the first broken link.
 ```
 
-Suggested confirmation copy:
+Persistent confirmation warning:
 
 ```text
-This will deliberately corrupt demo ledger data so the mismatch state can be inspected. You can restore the seed state
-with Reset demo.
+Permanent unless repaired manually. New operations will be blocked.
 ```
 
 ## Browser-Side Verification
@@ -237,7 +235,8 @@ The first UI implementation can be additive and should avoid changing the rechar
 5. Add operation row sequence/hash metadata from `OperationResponse`.
 6. Add expandable proof details from `OperationProofResponse`.
 7. Add an Audit Trail panel using `LedgerVerificationResponse` for status, head hash, and mismatch details.
-8. Add browser-side verification and copy/export actions in a later slice.
+8. Add capability-gated corruption controls with fixed mode and target-operation selectors, plus an exact repair receipt.
+9. Add browser-side verification and copy/export actions in a later slice.
 
 ## Acceptance Criteria
 
@@ -246,5 +245,6 @@ The UI is ready when:
 - The user can see whether the ledger is verified.
 - The user can inspect proof details for a specific operation.
 - The user can run verification from the UI.
+- The user can target the latest or a historical operation when simulating a bounded mismatch.
 - Ledger mismatch states are clear and actionable.
 - The default budgeting workflow still feels simple.

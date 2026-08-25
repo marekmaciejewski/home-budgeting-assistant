@@ -159,7 +159,6 @@ body {
 .history-hash,
 .technical-value {
   overflow-wrap: anywhere;
-  word-break: break-word;
 }
 
 .history-hash {
@@ -211,6 +210,10 @@ body {
 
 .audit-mismatch {
   background: var(--bs-danger-bg-subtle);
+}
+
+.tamper-receipt {
+  background: var(--app-muted-bg);
 }
 
 .min-w-0 {

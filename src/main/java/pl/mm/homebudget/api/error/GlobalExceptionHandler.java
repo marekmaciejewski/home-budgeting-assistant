@@ -2,6 +2,7 @@ package pl.mm.homebudget.api.error;
 
 import pl.mm.homebudget.api.dto.ValidationError;
 import pl.mm.homebudget.domain.InvalidTransferException;
+import pl.mm.homebudget.domain.LedgerConflictException;
 import pl.mm.homebudget.domain.OperationNotFoundException;
 import pl.mm.homebudget.domain.RegisterNotFoundException;
 
@@ -30,10 +31,17 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InvalidTransferException.class)
-    public ResponseEntity<ProblemDetail> handleInvalidTransfer(
-            InvalidTransferException e,
+    public ResponseEntity<ProblemDetail> handleBadRequest(
+            RuntimeException e,
             ServerWebExchange exchange) {
         return problem(HttpStatus.BAD_REQUEST, e.getMessage(), exchange);
+    }
+
+    @ExceptionHandler(LedgerConflictException.class)
+    public ResponseEntity<ProblemDetail> handleConflict(
+            LedgerConflictException e,
+            ServerWebExchange exchange) {
+        return problem(HttpStatus.CONFLICT, e.getMessage(), exchange);
     }
 
     @ExceptionHandler(WebExchangeBindException.class)
