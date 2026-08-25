@@ -213,6 +213,10 @@ body {
   background: var(--bs-danger-bg-subtle);
 }
 
+.tamper-receipt {
+  background: var(--app-muted-bg);
+}
+
 .min-w-0 {
   min-width: 0;
 }

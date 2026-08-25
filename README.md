@@ -1,7 +1,7 @@
 # home-budgeting-assistant
 
 | [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=coverage)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant) | [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=bugs)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant)<br>[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=marekmaciejewski_home-budgeting-assistant&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=marekmaciejewski_home-budgeting-assistant) |
-|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ## Live demo
 
@@ -14,7 +14,8 @@
 > before the demo responds.
 
 The hosted backend uses the `demo` profile with ephemeral in-memory H2. Restart, redeploy, or idle spin-down starts from
-the seeded state, and `POST /demo/reset` restores the seed data during a running demo.
+the seeded state, and `POST /demo/reset` restores the seed data during a running demo. The Audit Trail also exposes a
+bounded ledger corruption simulation so each verification mismatch can be inspected and reset.
 
 ## Local backend setup
 
@@ -50,15 +51,19 @@ In the default file-backed profile, deleting the local DB file gives a fully fre
 
 The app exposes the following primary API on the default host:
 
-| method | url                                  | description                         |
-|--------|--------------------------------------|-------------------------------------|
-| GET    | `/registers`                         | get all active registers            |
-| GET    | `/registers/{registerId}`            | get one active register             |
-| GET    | `/operations`                        | get all balance-changing operations |
-| GET    | `/operations/{operationId}`          | get one balance-changing operation  |
-| POST   | `/operations/recharges`              | create a recharge operation         |
-| POST   | `/operations/transfers`              | create a transfer operation         |
-| POST   | `/demo/reset`                        | reset public demo state; demo profile only |
+| method | url                               | description                           |
+|--------|-----------------------------------|---------------------------------------|
+| GET    | `/registers`                      | get all active registers              |
+| GET    | `/registers/{registerId}`         | get one active register               |
+| GET    | `/operations`                     | get all balance-changing operations   |
+| GET    | `/operations/{operationId}`       | get one balance-changing operation    |
+| POST   | `/operations/recharges`           | create a recharge operation           |
+| POST   | `/operations/transfers`           | create a transfer operation           |
+| GET    | `/ledger/verify`                  | verify the complete auditable ledger  |
+| GET    | `/operations/{operationId}/proof` | inspect one operation proof           |
+| GET    | `/capabilities`                   | inspect runtime showcase capabilities |
+| POST   | `/ledger/tamper-simulations`      | apply one bounded ledger corruption   |
+| POST   | `/demo/reset`                     | reset state when storage is ephemeral |
 
 Register IDs are currently register names, so names containing spaces must be URL-encoded in path variables.
 
@@ -73,6 +78,7 @@ Maven generates the Spring WebFlux API interfaces and request/response DTOs from
 - [Auditable ledger master plan](docs/auditable-ledger-master-plan.md)
 - [Auditable ledger Phase 1 plan](docs/auditable-ledger-phase-1-plan.md)
 - [Auditable ledger Phase 2 plan](docs/auditable-ledger-phase-2-plan.md)
+- [Auditable ledger Phase 5b showcase tamper plan](docs/auditable-ledger-phase-5b-demo-tamper-plan.md)
 - [Auditability UI plan](docs/auditability-ui-plan.md)
 
 The Codex app's `[Use plan mode]` button is useful for work like the auditable ledger feature: use it before each
@@ -113,18 +119,25 @@ artifact, and publishes analysis to the
 
 ## Deployment notes
 
-Hosted deployments use the `demo` profile, which enables ephemeral demo storage and the `POST /demo/reset` endpoint.
+Hosted deployments use the `demo` profile, which selects ephemeral in-memory H2 storage. The backend classifies R2DBC
+URLs beginning with `r2dbc:h2:mem` as ephemeral and exposes `POST /demo/reset`; other URLs are treated as persistent.
 
 Deployment-relevant environment variables:
 
-| variable                   | example                                      | purpose                                                |
-|----------------------------|----------------------------------------------|--------------------------------------------------------|
-| `SPRING_PROFILES_ACTIVE`   | `demo`                                       | enables ephemeral demo H2 storage                      |
-| `PORT`                     | provided by Render                           | host-provided server port, defaults to `8080` locally  |
-| `APP_CORS_ALLOWED_ORIGINS` | `https://marekmaciejewski.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS |
+| variable                               | example                                                    | purpose                                               |
+|----------------------------------------|------------------------------------------------------------|-------------------------------------------------------|
+| `SPRING_PROFILES_ACTIVE`               | `demo`                                                     | enables ephemeral demo H2 storage                     |
+| `PORT`                                 | provided by Render                                         | host-provided server port, defaults to `8080` locally |
+| `APP_CORS_ALLOWED_ORIGINS`             | `https://marekmaciejewski.github.io,http://localhost:5173` | comma-separated frontend origins allowed by CORS      |
+| `APP_LEDGER_TAMPER_SIMULATION_ENABLED` | `true`                                                     | exposes the bounded ledger corruption showcase        |
 
 By default, CORS allows the GitHub Pages host and local Vite development origins:
 `https://marekmaciejewski.github.io`, `http://localhost:5173`, and `http://127.0.0.1:5173`.
+
+Tamper simulation changes one real `OPERATIONS` value and returns its exact previous and new values. The target can be
+the latest operation or a selected historical sequence. Ephemeral storage is recoverable through `POST /demo/reset`.
+With persistent storage, the application provides no automatic repair and blocks new balance-changing operations until
+the ledger is repaired manually.
 
 ## The Original Assignment
 

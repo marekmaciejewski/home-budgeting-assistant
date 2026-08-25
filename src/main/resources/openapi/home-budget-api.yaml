@@ -9,8 +9,26 @@ tags:
   - name: registers
   - name: operations
   - name: ledger
+  - name: showcase
+  - name: runtime
   - name: demo
 paths:
+  /capabilities:
+    get:
+      tags:
+        - runtime
+      operationId: getRuntimeCapabilities
+      summary: Get runtime capabilities exposed by this deployment.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeCapabilitiesResponse"
+              example:
+                storageMode: EPHEMERAL
+                ledgerTamperSimulationAvailable: true
   /ledger/verify:
     get:
       tags:
@@ -35,6 +53,47 @@ paths:
                   sequenceNumber: 3
                   operationId: 3
                   reason: Stored payload hash does not match the recalculated payload hash.
+  /ledger/tamper-simulations:
+    post:
+      tags:
+        - showcase
+      operationId: simulateLedgerTamper
+      summary: Deliberately corrupt one bounded ledger field.
+      description: A showcase fault-injection operation. Persistent deployments do not provide automatic recovery.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TamperLedgerCommand"
+      responses:
+        "200":
+          description: Ledger corruption simulated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TamperLedgerResponse"
+              example:
+                operationId: 3
+                sequenceNumber: 3
+                mode: PAYLOAD_HASH
+                field: PAYLOAD_HASH
+                previousValue: 296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+                newValue: 096ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+                verificationStatus: INVALID
+                mismatch:
+                  sequenceNumber: 3
+                  operationId: 3
+                  reason: Stored payload hash does not match the recalculated payload hash.
+                verificationPath: /ledger/verify
+                resetPath: /demo/reset
+                message: Ledger mismatch simulated. Copy the change details before resetting or repairing the data.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /registers:
     get:
       tags:
@@ -270,7 +329,7 @@ paths:
         - demo
       operationId: resetDemo
       summary: Reset the public demo state.
-      description: Available only when the backend runs with the demo profile. Clears operation history and restores the seed active registers for the public demo.
+      description: Available only when the configured R2DBC URL identifies in-memory H2 storage. Clears operation history and restores the seed active registers for the public demo.
       responses:
         "200":
           description: Demo state reset.
@@ -352,6 +411,17 @@ components:
                 status: 404
                 detail: 999 operation not found
                 instance: /operations/999
+    Conflict:
+      description: Request conflicts with the current ledger state.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            title: Conflict
+            status: 409
+            detail: Ledger is already invalid. Repair or reset it before simulating another mismatch.
+            instance: /ledger/tamper-simulations
   schemas:
     ProblemDetail:
       description: Problem detail response.
@@ -423,6 +493,104 @@ components:
         - VERIFIED
         - INVALID
       example: VERIFIED
+    RuntimeStorageMode:
+      description: Persistence lifetime inferred from the configured R2DBC URL.
+      type: string
+      enum:
+        - EPHEMERAL
+        - PERSISTENT
+      example: EPHEMERAL
+    RuntimeCapabilitiesResponse:
+      description: Runtime features and storage behavior advertised to API clients.
+      type: object
+      properties:
+        storageMode:
+          $ref: "#/components/schemas/RuntimeStorageMode"
+        ledgerTamperSimulationAvailable:
+          type: boolean
+          description: Whether the bounded ledger corruption endpoint is enabled.
+      required:
+        - storageMode
+        - ledgerTamperSimulationAvailable
+    TamperLedgerMode:
+      description: Fixed ledger field corruption to apply.
+      type: string
+      enum:
+        - AMOUNT
+        - PREVIOUS_HASH
+        - PAYLOAD_HASH
+        - OPERATION_HASH
+      default: PAYLOAD_HASH
+      example: PAYLOAD_HASH
+    TamperLedgerCommand:
+      description: Selects one fixed corruption mode and, optionally, one ledger operation.
+      type: object
+      properties:
+        operationId:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Target operation identifier. Cannot be combined with sequenceNumber.
+          example: 3
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Target ledger sequence. Cannot be combined with operationId.
+          example: 3
+        mode:
+          $ref: "#/components/schemas/TamperLedgerMode"
+    TamperLedgerResponse:
+      description: Tamper receipt containing the exact bounded change and resulting verification mismatch.
+      type: object
+      properties:
+        operationId:
+          type: integer
+          format: int64
+          description: Identifier of the changed operation.
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Ledger sequence of the changed operation.
+        mode:
+          $ref: "#/components/schemas/TamperLedgerMode"
+        field:
+          type: string
+          description: Exact OPERATIONS column that was changed.
+          example: PAYLOAD_HASH
+        previousValue:
+          type: string
+          description: Exact value before corruption, suitable for manual repair.
+        newValue:
+          type: string
+          description: Exact value stored by the simulation.
+        verificationStatus:
+          $ref: "#/components/schemas/LedgerStatus"
+        mismatch:
+          $ref: "#/components/schemas/LedgerMismatch"
+        verificationPath:
+          type: string
+          example: /ledger/verify
+        resetPath:
+          type: string
+          nullable: true
+          description: Demo reset path when available, otherwise null.
+          example: /demo/reset
+        message:
+          type: string
+          description: Short guidance for inspecting or recovering from the simulated corruption.
+      required:
+        - operationId
+        - sequenceNumber
+        - mode
+        - field
+        - previousValue
+        - newValue
+        - verificationStatus
+        - mismatch
+        - verificationPath
+        - message
     LedgerMismatch:
       description: First ledger verification mismatch.
       type: object

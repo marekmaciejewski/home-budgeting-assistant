@@ -175,27 +175,31 @@ Potential response schemas:
 - `OperationProofResponse`
 - `LedgerMismatch`
 
-### Phase 5b: Demo Tamper Simulation
+### Phase 5b: Showcase Tamper Simulation
 
-Add a profile-gated tamper simulation tool so the mismatch path can be demonstrated without manual database edits.
-
-This should be treated as demo fault injection, not a production feature or administrative backdoor.
+Add a capability-gated tamper simulation tool so the mismatch path can be demonstrated in the deployed showcase
+without manual database edits. This is bounded fault injection, not an arbitrary administration API.
 
 Recommended endpoint:
 
 | method | path | purpose |
 |--------|------|---------|
-| `POST` | `/demo/ledger/tamper` | Deliberately corrupt one ledger field so verification fails. Demo/dev only. |
+| `GET` | `/capabilities` | Advertise tamper and storage-mode capabilities. |
+| `POST` | `/ledger/tamper-simulations` | Deliberately corrupt one bounded ledger field so verification fails. |
 
 Recommended behavior:
 
-- Expose only under the `demo` profile or an explicit local development property.
+- Expose through the explicit `app.features.ledger-tamper-simulation-enabled` capability.
 - Prefer changing one bounded field on one operation, such as `AMOUNT`, `PREVIOUS_HASH`, or `PAYLOAD_HASH`.
 - Do not recompute hashes after the change. The point is to create a detectable mismatch.
 - Return the affected operation ID, sequence number, tampered field, previous value, new value, and reset guidance.
 - Do not allow arbitrary SQL, arbitrary table writes, or arbitrary field names.
 - After tampering, `GET /ledger/verify` should report the first mismatch.
-- `POST /demo/reset` should restore the seed state and clear the simulated mismatch.
+- Return the exact previous and new values as a manual-repair receipt.
+- Block new balance-changing operations while the ledger is invalid.
+- `POST /demo/reset` restores ephemeral demo state; persistent deployments require manual repair.
+- Treat R2DBC URLs beginning with `r2dbc:h2:mem` as ephemeral and expose reset only when that prefix matches. Clients
+  derive reset availability from the returned storage mode.
 
 Potential request schema:
 
@@ -206,8 +210,8 @@ sequenceNumber: optional long
 mode: AMOUNT | PREVIOUS_HASH | PAYLOAD_HASH | OPERATION_HASH
 ```
 
-If neither operation ID nor sequence number is provided, choose a recent operation with enough surrounding chain context
-to produce a useful mismatch demonstration.
+If neither operation ID nor sequence number is provided, choose the latest operation. The UI should also allow selecting
+a historical sequence so corruption can be demonstrated in the middle of the chain.
 
 See [Phase 5b demo tamper plan](auditable-ledger-phase-5b-demo-tamper-plan.md) for implementation details and a
 separate-session prompt.
@@ -250,8 +254,8 @@ defaulted values that must be type-correct or unique, and startup backfill repla
 hash-chain values. After these changelogs are released, compatibility fixes should be appended as new changelogs rather
 than by rewriting applied ones.
 
-For the public demo profile, `POST /demo/reset` should clear operations and restore seed registers. After this feature,
-reset should also leave the ledger empty and ready for a fresh genesis-linked first operation.
+When the configured R2DBC URL identifies in-memory H2 storage, `POST /demo/reset` should clear operations and restore
+seed registers. Reset should also leave the ledger empty and ready for a fresh genesis-linked first operation.
 
 ## Frontend Implementation Phases
 
@@ -290,7 +294,7 @@ The first complete version is done when:
 - New recharge and transfer operations are hash-chained.
 - The ledger head and full-chain verification diagnostics can be retrieved through the API.
 - Tampering with a historical operation causes verification to fail.
-- A demo/dev-only tamper simulation can create a visible mismatch without manual database access.
+- A bounded showcase tamper simulation can create a visible mismatch without manual database access.
 - Operation history shows clear audit status in the UI.
 - A user can inspect the proof for an individual operation.
 - Tests cover valid and invalid chains.

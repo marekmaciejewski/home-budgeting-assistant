@@ -6,7 +6,6 @@ export type AppHeaderProps = {
   apiBaseUrl: string;
   isRenderBackend: boolean;
   isEphemeralDemo: boolean;
-  canResetDemo: boolean;
   isRefreshing: boolean;
   isResetting: boolean;
   isInitialLoading: boolean;
@@ -20,7 +19,6 @@ export function AppHeader({
   apiBaseUrl,
   isRenderBackend,
   isEphemeralDemo,
-  canResetDemo,
   isRefreshing,
   isResetting,
   isInitialLoading,
@@ -101,7 +99,7 @@ export function AppHeader({
                   >
                     {isRefreshing ? "Refreshing..." : "Refresh"}
                   </button>
-                  {canResetDemo && (
+                  {isEphemeralDemo && (
                     <button
                       className="btn btn-outline-danger api-action"
                       type="button"

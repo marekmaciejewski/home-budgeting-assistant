@@ -5,6 +5,9 @@ import type {
   OperationResponse,
   RechargeCommand,
   RegisterResponse,
+  RuntimeCapabilitiesResponse,
+  TamperLedgerMode,
+  TamperLedgerResponse,
   TransferCommand
 } from "./apiTypes";
 import { AuditTrail } from "./components/AuditTrail";
@@ -30,18 +33,29 @@ async function fetchDemoData(): Promise<{
   registers: RegisterResponse[];
   operations: OperationResponse[];
   ledgerState: LedgerVerificationState;
+  runtimeCapabilities: RuntimeCapabilitiesResponse | null;
 }> {
-  const [nextRegisters, nextOperations, ledgerState] = await Promise.all([
+  const [nextRegisters, nextOperations, ledgerState, runtimeCapabilities] = await Promise.all([
     api.getRegisters(),
     api.getOperations(),
-    fetchLedgerVerification()
+    fetchLedgerVerification(),
+    fetchRuntimeCapabilities()
   ]);
 
   return {
     registers: nextRegisters,
     operations: toSortedOperations(nextOperations),
-    ledgerState
+    ledgerState,
+    runtimeCapabilities
   };
+}
+
+async function fetchRuntimeCapabilities(): Promise<RuntimeCapabilitiesResponse | null> {
+  try {
+    return await api.getRuntimeCapabilities();
+  } catch {
+    return null;
+  }
 }
 
 async function fetchLedgerVerification(): Promise<LedgerVerificationState> {
@@ -70,12 +84,15 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [submitAction, setSubmitAction] = useState<SubmitAction>(null);
+  const [runtimeCapabilities, setRuntimeCapabilities] =
+    useState<RuntimeCapabilitiesResponse | null>(null);
+  const [tamperReceipt, setTamperReceipt] = useState<TamperLedgerResponse | null>(null);
   const ledgerRequestVersion = useRef(0);
 
   const isRenderBackend = api.baseUrl.includes("onrender.com");
-  // TODO: Replace this URL-based assumption with backend-provided runtime metadata.
-  const isEphemeralDemo = isRenderBackend;
-  const canResetDemo = isEphemeralDemo;
+  const isEphemeralDemo = runtimeCapabilities?.storageMode === "EPHEMERAL";
+  const canSimulateLedgerTamper =
+    runtimeCapabilities?.ledgerTamperSimulationAvailable === true;
 
   const loadDemoData = useCallback(async () => {
     const currentLedgerRequest = ledgerRequestVersion.current + 1;
@@ -93,6 +110,7 @@ export default function App() {
       const demoData = await fetchDemoData();
       setRegisters(demoData.registers);
       setOperations(demoData.operations);
+      setRuntimeCapabilities(demoData.runtimeCapabilities);
 
       if (ledgerRequestVersion.current === currentLedgerRequest) {
         setLedgerState(demoData.ledgerState);
@@ -130,6 +148,7 @@ export default function App() {
 
         setRegisters(demoData.registers);
         setOperations(demoData.operations);
+        setRuntimeCapabilities(demoData.runtimeCapabilities);
 
         if (ledgerRequestVersion.current === currentLedgerRequest) {
           setLedgerState(demoData.ledgerState);
@@ -166,7 +185,11 @@ export default function App() {
   );
 
   const canSubmitForms =
-    registers.length > 0 && !isInitialLoading && !isRefreshing && submitAction === null;
+    registers.length > 0 &&
+    ledgerState.kind !== "invalid" &&
+    !isInitialLoading &&
+    !isRefreshing &&
+    submitAction === null;
 
   async function refreshAfterMutation(message: string) {
     setFeedbackMessage(message);
@@ -180,6 +203,7 @@ export default function App() {
 
     try {
       await api.createRecharge(command);
+      setTamperReceipt(null);
       await refreshAfterMutation(
         `Recharged ${command.registerId} by ${formatAmount(command.amount)}.`
       );
@@ -199,6 +223,7 @@ export default function App() {
 
     try {
       await api.createTransfer(command);
+      setTamperReceipt(null);
       await refreshAfterMutation(
         `Moved ${formatAmount(command.amount)} from ${command.sourceRegisterId} to ${command.targetRegisterId}.`
       );
@@ -212,7 +237,7 @@ export default function App() {
   }
 
   async function handleReset() {
-    if (!canResetDemo) {
+    if (!isEphemeralDemo) {
       setErrorMessage("Reset is available only for the hosted ephemeral demo.");
       return;
     }
@@ -243,6 +268,7 @@ export default function App() {
         setLedgerState(nextLedgerState);
       }
       setFeedbackMessage("Demo state reset to the seeded register balances.");
+      setTamperReceipt(null);
     } catch (error) {
       setErrorMessage(messageFromError(error));
 
@@ -267,13 +293,30 @@ export default function App() {
     }
   }
 
+  async function handleTamperLedger(mode: TamperLedgerMode, sequenceNumber?: number) {
+    setErrorMessage(null);
+    setFeedbackMessage(null);
+    setSubmitAction("tamper");
+
+    try {
+      const receipt = await api.simulateLedgerTamper({ mode, sequenceNumber });
+      setTamperReceipt(receipt);
+      await refreshAfterMutation(
+        `Corrupted ${receipt.field} at ledger sequence #${receipt.sequenceNumber}.`
+      );
+    } catch (error) {
+      setErrorMessage(messageFromError(error));
+    } finally {
+      setSubmitAction(null);
+    }
+  }
+
   return (
     <div className="app-shell bg-body-tertiary min-vh-100">
       <AppHeader
         apiBaseUrl={api.baseUrl}
         isRenderBackend={isRenderBackend}
         isEphemeralDemo={isEphemeralDemo}
-        canResetDemo={canResetDemo}
         isRefreshing={isRefreshing}
         isResetting={submitAction === "reset"}
         isInitialLoading={isInitialLoading}
@@ -308,7 +351,18 @@ export default function App() {
             <div className="mt-4">
               <AuditTrail
                 ledgerState={ledgerState}
+                operations={operations}
+                tamperSimulationAvailable={canSimulateLedgerTamper}
+                storageMode={runtimeCapabilities?.storageMode ?? null}
+                isTampering={submitAction === "tamper"}
+                isResetting={submitAction === "reset"}
+                isBusy={submitAction !== null || isRefreshing}
+                tamperReceipt={tamperReceipt}
                 onVerify={() => void handleVerifyLedger()}
+                onTamper={(mode, sequenceNumber) =>
+                  void handleTamperLedger(mode, sequenceNumber)
+                }
+                onReset={() => void handleReset()}
               />
             </div>
           </div>

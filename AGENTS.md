@@ -117,8 +117,10 @@ The planned ledger feature is an in-repo tamper-evident operation history, not a
   `GET /ledger/verify` also returns the current ledger head fields. Do not add a separate `GET /ledger/head` endpoint
   unless it gets materially different behavior.
 - Verification should detect sequence gaps, previous-hash mismatches, payload tampering, and operation-hash mismatches.
-- If adding mismatch simulation, call it "tamper simulation" or "fault injection", expose it only in demo/dev contexts,
-  never allow arbitrary writes, and make `POST /demo/reset` the recovery path.
+- Call mismatch simulation "tamper simulation" or "fault injection", gate it with the explicit runtime capability,
+  never allow arbitrary writes, return exact before/after repair details, and use `POST /demo/reset` only for ephemeral
+  storage recovery. Treat R2DBC URLs beginning with `r2dbc:h2:mem` as ephemeral and derive reset availability from that
+  storage mode. Persistent deployments require a clear warning and manual repair.
 - Frontend auditability should stay subtle: header ledger status, operation-history verification badges, expandable
   proof details, and a dedicated Audit Trail view.
 
