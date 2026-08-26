@@ -6,6 +6,8 @@ import org.springframework.boot.r2dbc.autoconfigure.R2dbcProperties;
 import org.springframework.stereotype.Service;
 import pl.mm.homebudget.api.dto.RuntimeCapabilitiesResponse;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class RuntimeCapabilityService {
@@ -27,6 +29,8 @@ public class RuntimeCapabilityService {
     }
 
     public static boolean isEphemeral(String r2dbcUrl) {
-        return r2dbcUrl != null && r2dbcUrl.startsWith(EPHEMERAL_R2DBC_URL_PREFIX);
+        return Optional.ofNullable(r2dbcUrl)
+                .filter(url -> url.startsWith(EPHEMERAL_R2DBC_URL_PREFIX))
+                .isPresent();
     }
 }

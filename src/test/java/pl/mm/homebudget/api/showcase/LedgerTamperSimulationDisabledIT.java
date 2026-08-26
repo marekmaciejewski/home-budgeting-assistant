@@ -35,7 +35,7 @@ class LedgerTamperSimulationDisabledIT {
     }
 
     @Test
-    void tamperSimulation_isNotExposedWhenDisabled() {
+    void tamperSimulation_isNotExposed_whenDisabled() {
         testClient.post().uri("/ledger/tamper-simulations")
                 .header("Content-Type", "application/json")
                 .bodyValue("{}")

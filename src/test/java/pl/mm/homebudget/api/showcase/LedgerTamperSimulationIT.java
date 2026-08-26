@@ -21,8 +21,7 @@ import java.util.stream.Stream;
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
                 "spring.r2dbc.url=r2dbc:h2:mem:///tamperledgerapitest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-                "spring.liquibase.url=jdbc:h2:mem:tamperledgerapitest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-                "app.features.ledger-tamper-simulation-enabled=true"
+                "spring.liquibase.url=jdbc:h2:mem:tamperledgerapitest;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
         })
 @AutoConfigureWebTestClient
 @Import(FixedClockTestConfiguration.class)
@@ -34,6 +33,14 @@ class LedgerTamperSimulationIT {
             "296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04";
     private static final String RECHARGE_OPERATION_HASH =
             "bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c";
+    private static final String SEED_REGISTERS = """
+            [
+              {"id":"Wallet","balance":1000.00},
+              {"id":"Savings","balance":5000.00},
+              {"id":"Insurance policy","balance":0.00},
+              {"id":"Food expenses","balance":0.00}
+            ]
+            """;
 
     @Autowired
     private WebTestClient testClient;
@@ -42,7 +49,10 @@ class LedgerTamperSimulationIT {
     void resetDemo() {
         testClient.post().uri("/demo/reset")
                 .exchange()
-                .expectStatus().isOk();
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .json(SEED_REGISTERS);
     }
 
     @Test
@@ -140,6 +150,11 @@ class LedgerTamperSimulationIT {
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$.status").isEqualTo("INVALID")
+                .jsonPath("$.operationCount").isEqualTo(1)
+                .jsonPath("$.verifiedThroughSequence").isEqualTo(0)
+                .jsonPath("$.latestSequenceNumber").isEqualTo(1)
+                .jsonPath("$.mismatch.sequenceNumber").isEqualTo(1)
+                .jsonPath("$.mismatch.operationId").isEqualTo(operation.getId().intValue())
                 .jsonPath("$.mismatch.reason").isEqualTo(mismatchReason);
 
         testClient.get().uri("/operations/{operationId}/proof", operation.getId())
@@ -150,6 +165,28 @@ class LedgerTamperSimulationIT {
                 .jsonPath("$.payloadHashValid").isEqualTo(payloadHashValid)
                 .jsonPath("$.operationHashValid").isEqualTo(operationHashValid)
                 .jsonPath("$.valid").isEqualTo(false);
+    }
+
+    @Test
+    void simulateAmountTamper_subtractsAtDecimalLimit() {
+        OperationResponse operation = createRecharge("Insurance policy", "99999999999999999.99");
+
+        postTamper("{\"mode\":\"AMOUNT\"}")
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.operationId").isEqualTo(operation.getId().intValue())
+                .jsonPath("$.field").isEqualTo("AMOUNT")
+                .jsonPath("$.previousValue").isEqualTo("99999999999999999.99")
+                .jsonPath("$.newValue").isEqualTo("99999999999999999.98");
+
+        testClient.get().uri("/ledger/verify")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("INVALID")
+                .jsonPath("$.mismatch.operationId").isEqualTo(operation.getId().intValue())
+                .jsonPath("$.mismatch.reason")
+                .isEqualTo("Stored payload hash does not match the recalculated payload hash.");
     }
 
     @Test
@@ -201,9 +238,16 @@ class LedgerTamperSimulationIT {
     }
 
     @Test
-    void invalidLedger_blocksNewOperationsUntilDemoReset() {
+    void invalidLedger_blocksFurtherTamperingAndNewOperationsUntilDemoReset() {
         createRecharge();
         postTamper("{}").expectStatus().isOk();
+
+        expectProblem(
+                postTamper("{}"),
+                409,
+                "Conflict",
+                "Ledger is already invalid. Repair or reset it before simulating another mismatch.",
+                TAMPER_PATH);
 
         expectProblem(
                 testClient.post().uri("/operations/recharges")
@@ -222,6 +266,12 @@ class LedgerTamperSimulationIT {
                 .expectBody()
                 .jsonPath("$.status").isEqualTo("VERIFIED")
                 .jsonPath("$.operationCount").isEqualTo(0);
+
+        testClient.get().uri("/registers")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .json(SEED_REGISTERS);
     }
 
     private static Stream<Arguments> tamperModes() {
@@ -265,9 +315,13 @@ class LedgerTamperSimulationIT {
     }
 
     private OperationResponse createRecharge() {
+        return createRecharge("Wallet", "2500");
+    }
+
+    private OperationResponse createRecharge(String registerId, String amount) {
         return testClient.post().uri("/operations/recharges")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue("{\"registerId\":\"Wallet\",\"amount\":2500}")
+                .bodyValue("{\"registerId\":\"%s\",\"amount\":%s}".formatted(registerId, amount))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectBody(OperationResponse.class)

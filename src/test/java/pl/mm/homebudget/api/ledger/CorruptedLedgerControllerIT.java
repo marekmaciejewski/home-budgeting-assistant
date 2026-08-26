@@ -27,7 +27,6 @@ class CorruptedLedgerControllerIT {
     private static final String RESET_LEDGER = "/db/test-data/ledger/reset-ledger.sql";
     private static final String VALID_TWO_OPERATION_LEDGER =
             "/db/test-data/ledger/valid-two-operation-ledger.sql";
-    private static final String WRONG_HASH = "f".repeat(64);
     private static final String FIRST_OPERATION_HASH =
             "bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c";
     private static final String SECOND_OPERATION_HASH =
@@ -48,8 +47,8 @@ class CorruptedLedgerControllerIT {
                 "Missing operation for sequence 2.",
                 2,
                 1,
-                3,
-                SECOND_OPERATION_HASH);
+                3
+        );
     }
 
     @Test
@@ -62,54 +61,8 @@ class CorruptedLedgerControllerIT {
                 "Ledger sequence must start at 1.",
                 1,
                 0,
-                2,
-                SECOND_OPERATION_HASH);
-    }
-
-    @Test
-    @Sql(
-            scripts = {RESET_LEDGER, VALID_TWO_OPERATION_LEDGER},
-            statements = "UPDATE OPERATIONS SET PREVIOUS_HASH = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' WHERE ID = 102")
-    void verifyLedger_reportsFirstPreviousHashMismatch() {
-        expectInvalidLedger(
-                102L,
-                "Stored previous hash does not match the expected previous hash.",
-                2,
-                1,
-                2,
-                SECOND_OPERATION_HASH);
-    }
-
-    @Test
-    @Sql(
-            scripts = {RESET_LEDGER, VALID_TWO_OPERATION_LEDGER},
-            statements = "UPDATE OPERATIONS SET TARGET_REGISTER_ID = 'Savings' WHERE ID = 102")
-    void verifyLedger_reportsFirstPayloadHashMismatch() {
-        expectInvalidLedger(
-                102L,
-                "Stored payload hash does not match the recalculated payload hash.",
-                2,
-                1,
-                2,
-                SECOND_OPERATION_HASH);
-
-        expectInvalidProof(false);
-    }
-
-    @Test
-    @Sql(
-            scripts = {RESET_LEDGER, VALID_TWO_OPERATION_LEDGER},
-            statements = "UPDATE OPERATIONS SET OPERATION_HASH = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff' WHERE ID = 102")
-    void verifyLedger_reportsFirstOperationHashMismatch() {
-        expectInvalidLedger(
-                102L,
-                "Stored operation hash does not match the recalculated operation hash.",
-                2,
-                1,
-                2,
-                WRONG_HASH);
-
-        expectInvalidProof(true);
+                2
+        );
     }
 
     @Test
@@ -155,8 +108,7 @@ class CorruptedLedgerControllerIT {
             String mismatchReason,
             long mismatchSequenceNumber,
             long verifiedThroughSequence,
-            long latestSequenceNumber,
-            String ledgerHeadHash) {
+            long latestSequenceNumber) {
         String operationIdJson = mismatchOperationId == null ? "null" : mismatchOperationId.toString();
 
         testClient.get().uri("/ledger/verify")
@@ -181,21 +133,9 @@ class CorruptedLedgerControllerIT {
                         """.formatted(
                         verifiedThroughSequence,
                         latestSequenceNumber,
-                        ledgerHeadHash,
+                        CorruptedLedgerControllerIT.SECOND_OPERATION_HASH,
                         mismatchSequenceNumber,
                         operationIdJson,
                         mismatchReason), JsonCompareMode.STRICT);
-    }
-
-    private void expectInvalidProof(boolean payloadHashValid) {
-        testClient.get().uri("/operations/102/proof")
-                .exchange()
-                .expectStatus().isOk()
-                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-                .expectBody()
-                .jsonPath("$.previousHashValid").isEqualTo(true)
-                .jsonPath("$.payloadHashValid").isEqualTo(payloadHashValid)
-                .jsonPath("$.operationHashValid").isEqualTo(false)
-                .jsonPath("$.valid").isEqualTo(false);
     }
 }
