@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 260717-08c
+      author: Marek
+      changes:
+        - addUniqueConstraint:
+            tableName: OPERATIONS
+            columnNames: SEQUENCE_NUMBER
+            constraintName: OPERATIONS_SEQUENCE_NUMBER_UK
+        - addUniqueConstraint:
+            tableName: OPERATIONS
+            columnNames: OPERATION_HASH
+            constraintName: OPERATIONS_OPERATION_HASH_UK

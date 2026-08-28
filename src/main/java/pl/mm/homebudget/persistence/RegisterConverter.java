@@ -1,6 +1,7 @@
 package pl.mm.homebudget.persistence;
 
 import pl.mm.homebudget.api.dto.OperationResponse;
+import pl.mm.homebudget.api.dto.OperationType;
 import pl.mm.homebudget.api.dto.RegisterResponse;
 import pl.mm.homebudget.persistence.entity.Operation;
 import pl.mm.homebudget.persistence.entity.Register;
@@ -20,31 +21,26 @@ public class RegisterConverter {
     private final ObjectProvider<RegisterResponse> registerResponseProvider;
     private final ObjectProvider<OperationResponse> operationResponseProvider;
 
-    public Operation createOperation(BigDecimal amount) {
-        return operationProvider.getObject(amount);
+    public Operation createRechargeOperation(BigDecimal amount, String registerId) {
+        return operationProvider.getObject(amount, OperationType.RECHARGE, null, registerId);
     }
 
-    public Tuple2<Register, Operation> applyRechargeToRegister(Tuple2<Register, Operation> inputs) {
-        applyOperationToTarget(inputs.getT1(), inputs.getT2());
-        return inputs;
+    public Operation createTransferOperation(BigDecimal amount, String sourceRegisterId, String targetRegisterId) {
+        return operationProvider.getObject(amount, OperationType.TRANSFER, sourceRegisterId, targetRegisterId);
     }
 
-    public Tuple3<Register, Register, Operation> applyTransferToRegisters(
-            Tuple3<Register, Register, Operation> inputs) {
+    public void applyRechargeToRegister(Tuple2<Register, Operation> inputs) {
+        Register target = inputs.getT1();
+        Operation recharge = inputs.getT2();
+        target.setBalance(target.getBalance().add(recharge.getAmount()));
+    }
+
+    public void applyTransferToRegisters(Tuple3<Register, Register, Operation> inputs) {
+        Register source = inputs.getT1();
+        Register target = inputs.getT2();
         Operation transfer = inputs.getT3();
-        applyOperationToSource(inputs.getT1(), transfer);
-        applyOperationToTarget(inputs.getT2(), transfer);
-        return inputs;
-    }
-
-    private void applyOperationToSource(Register source, Operation operation) {
-        operation.setSourceRegisterId(source.getId());
-        source.setBalance(source.getBalance().subtract(operation.getAmount()));
-    }
-
-    private void applyOperationToTarget(Register target, Operation operation) {
-        operation.setTargetRegisterId(target.getId());
-        target.setBalance(target.getBalance().add(operation.getAmount()));
+        source.setBalance(source.getBalance().subtract(transfer.getAmount()));
+        target.setBalance(target.getBalance().add(transfer.getAmount()));
     }
 
     public RegisterResponse toResponse(Register register) {

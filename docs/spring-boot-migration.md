@@ -83,14 +83,17 @@ spring:
 
 This keeps the deployed demo stateless enough for free hosts such as Render Free or Koyeb Free. The database disappears
 when the process restarts, and `POST /demo/reset` restores the seed rows during a running demo. The reset controller
-and reset service are profile-gated with `@Profile("demo")`, so the endpoint is not exposed in the default local
-file-backed profile.
+and reset service use a custom condition that recognizes the `r2dbc:h2:mem` prefix, so the endpoint is not exposed for
+the default local file-backed database even if profile names change.
 
 ## Register And Operation Relationship
 
-The database still models the relationship with foreign keys from `OPERATION` to `REGISTER`.
+The database still models the relationship with foreign keys from `OPERATIONS` to `REGISTERS`.
 
-The Java model no longer uses JPA object graphs, cascades, or lazy collection loading. `Operation` stores source and target register IDs, and operations are persisted explicitly through `OperationRepository`. This matches Spring Data R2DBC's aggregate style and avoids pretending that R2DBC has JPA relationship management.
+The Java model no longer uses JPA object graphs, cascades, or lazy collection loading. `Operation` stores source and
+target register IDs in `SOURCE_REGISTER_ID` and `TARGET_REGISTER_ID`, and operations are persisted explicitly through
+`OperationRepository`. This matches Spring Data R2DBC's aggregate style and avoids pretending that R2DBC has JPA
+relationship management.
 
 ## Boot 4 Adjustments
 
@@ -138,8 +141,7 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 Current result:
 
 - Build: success.
-- Unit tests: no tests matched the current Surefire naming pattern.
-- Integration tests: 41 passed.
+- Unit and integration tests: 48 passed.
 
 Additional checks performed:
 
@@ -170,8 +172,8 @@ Additional checks performed:
   - `GET /operations/{operationId}`
   - `POST /operations/recharges`
   - `POST /operations/transfers`
-- Added public demo reset endpoint `POST /demo/reset` behind the `demo` profile; it clears operation history, restores
-  the four active seed registers, and returns the restored register list.
+- Added public demo reset endpoint `POST /demo/reset`; it clears operation history, restores the four active seed
+  registers, and returns the restored register list. Its availability is now inferred from ephemeral H2 storage.
 - Added WebFlux CORS configuration controlled by `app.cors.allowed-origins` / `APP_CORS_ALLOWED_ORIGINS`; default local
   frontend origins are allowed, while wildcard origins are avoided.
 - Removed old `POST /registers/recharge` and `POST /registers/transfer` endpoints after replacing them with the

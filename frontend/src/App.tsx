@@ -1,13 +1,23 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "./api";
-import type { OperationResponse, RechargeCommand, RegisterResponse, TransferCommand } from "./apiTypes";
+import type {
+  LedgerVerificationResponse,
+  OperationResponse,
+  RechargeCommand,
+  RegisterResponse,
+  RuntimeCapabilitiesResponse,
+  TamperLedgerMode,
+  TamperLedgerResponse,
+  TransferCommand
+} from "./apiTypes";
+import { AuditTrail } from "./components/AuditTrail";
 import { AppHeader } from "./components/AppHeader";
 import { OperationsHistory } from "./components/OperationsHistory";
 import { RechargeForm } from "./components/RechargeForm";
 import { RegisterDashboard } from "./components/RegisterDashboard";
 import { StatusAlerts } from "./components/StatusAlerts";
 import { TransferForm } from "./components/TransferForm";
-import type { SubmitAction } from "./types/ui";
+import type { LedgerVerificationState, SubmitAction } from "./types/ui";
 import { formatAmount } from "./utils/formatters";
 import { toSortedOperations } from "./utils/operations";
 
@@ -22,37 +32,75 @@ function messageFromError(error: unknown): string {
 async function fetchDemoData(): Promise<{
   registers: RegisterResponse[];
   operations: OperationResponse[];
+  ledgerState: LedgerVerificationState;
+  runtimeCapabilities: RuntimeCapabilitiesResponse | null;
 }> {
-  const [nextRegisters, nextOperations] = await Promise.all([
+  const [nextRegisters, nextOperations, ledgerState, runtimeCapabilities] = await Promise.all([
     api.getRegisters(),
-    api.getOperations()
+    api.getOperations(),
+    fetchLedgerVerification(),
+    fetchRuntimeCapabilities()
   ]);
 
   return {
     registers: nextRegisters,
-    operations: toSortedOperations(nextOperations)
+    operations: toSortedOperations(nextOperations),
+    ledgerState,
+    runtimeCapabilities
   };
+}
+
+async function fetchRuntimeCapabilities(): Promise<RuntimeCapabilitiesResponse | null> {
+  try {
+    return await api.getRuntimeCapabilities();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchLedgerVerification(): Promise<LedgerVerificationState> {
+  try {
+    return toLedgerVerificationState(await api.verifyLedger());
+  } catch {
+    return { kind: "unavailable" };
+  }
+}
+
+function toLedgerVerificationState(
+  verification: LedgerVerificationResponse
+): LedgerVerificationState {
+  return verification.status === "VERIFIED"
+    ? { kind: "verified", data: verification }
+    : { kind: "invalid", data: verification };
 }
 
 export default function App() {
   const [registers, setRegisters] = useState<RegisterResponse[]>([]);
   const [operations, setOperations] = useState<OperationResponse[]>([]);
+  const [ledgerState, setLedgerState] = useState<LedgerVerificationState>({ kind: "pending" });
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showColdStartHint, setShowColdStartHint] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [submitAction, setSubmitAction] = useState<SubmitAction>(null);
+  const [runtimeCapabilities, setRuntimeCapabilities] =
+    useState<RuntimeCapabilitiesResponse | null>(null);
+  const [tamperReceipt, setTamperReceipt] = useState<TamperLedgerResponse | null>(null);
+  const ledgerRequestVersion = useRef(0);
 
   const isRenderBackend = api.baseUrl.includes("onrender.com");
-  // TODO: Replace this URL-based assumption with backend-provided runtime metadata.
-  const isEphemeralDemo = isRenderBackend;
-  const canResetDemo = isEphemeralDemo;
+  const isEphemeralDemo = runtimeCapabilities?.ephemeralStorage === true;
+  const canSimulateLedgerTamper =
+    runtimeCapabilities?.ledgerTamperSimulationAvailable === true;
 
   const loadDemoData = useCallback(async () => {
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
     setErrorMessage(null);
     setShowColdStartHint(false);
     setIsRefreshing(true);
+    setLedgerState({ kind: "pending" });
 
     const coldStartTimer = globalThis.setTimeout(() => {
       setShowColdStartHint(true);
@@ -62,8 +110,17 @@ export default function App() {
       const demoData = await fetchDemoData();
       setRegisters(demoData.registers);
       setOperations(demoData.operations);
+      setRuntimeCapabilities(demoData.runtimeCapabilities);
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState(demoData.ledgerState);
+      }
     } catch (error) {
       setErrorMessage(messageFromError(error));
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState({ kind: "unavailable" });
+      }
     } finally {
       globalThis.clearTimeout(coldStartTimer);
       setIsRefreshing(false);
@@ -72,6 +129,8 @@ export default function App() {
 
   useEffect(() => {
     let isCurrent = true;
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
 
     const coldStartTimer = globalThis.setTimeout(() => {
       if (isCurrent) {
@@ -89,9 +148,18 @@ export default function App() {
 
         setRegisters(demoData.registers);
         setOperations(demoData.operations);
+        setRuntimeCapabilities(demoData.runtimeCapabilities);
+
+        if (ledgerRequestVersion.current === currentLedgerRequest) {
+          setLedgerState(demoData.ledgerState);
+        }
       } catch (error) {
         if (isCurrent) {
           setErrorMessage(messageFromError(error));
+
+          if (ledgerRequestVersion.current === currentLedgerRequest) {
+            setLedgerState({ kind: "unavailable" });
+          }
         }
       } finally {
         globalThis.clearTimeout(coldStartTimer);
@@ -106,6 +174,7 @@ export default function App() {
 
     return () => {
       isCurrent = false;
+      ledgerRequestVersion.current += 1;
       globalThis.clearTimeout(coldStartTimer);
     };
   }, []);
@@ -116,7 +185,11 @@ export default function App() {
   );
 
   const canSubmitForms =
-    registers.length > 0 && !isInitialLoading && !isRefreshing && submitAction === null;
+    registers.length > 0 &&
+    ledgerState.kind !== "invalid" &&
+    !isInitialLoading &&
+    !isRefreshing &&
+    submitAction === null;
 
   async function refreshAfterMutation(message: string) {
     setFeedbackMessage(message);
@@ -130,6 +203,7 @@ export default function App() {
 
     try {
       await api.createRecharge(command);
+      setTamperReceipt(null);
       await refreshAfterMutation(
         `Recharged ${command.registerId} by ${formatAmount(command.amount)}.`
       );
@@ -149,6 +223,7 @@ export default function App() {
 
     try {
       await api.createTransfer(command);
+      setTamperReceipt(null);
       await refreshAfterMutation(
         `Moved ${formatAmount(command.amount)} from ${command.sourceRegisterId} to ${command.targetRegisterId}.`
       );
@@ -162,7 +237,7 @@ export default function App() {
   }
 
   async function handleReset() {
-    if (!canResetDemo) {
+    if (!isEphemeralDemo) {
       setErrorMessage("Reset is available only for the hosted ephemeral demo.");
       return;
     }
@@ -171,6 +246,10 @@ export default function App() {
     setFeedbackMessage(null);
     setSubmitAction("reset");
     setShowColdStartHint(false);
+    setLedgerState({ kind: "pending" });
+
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
 
     const coldStartTimer = globalThis.setTimeout(() => {
       setShowColdStartHint(true);
@@ -178,14 +257,56 @@ export default function App() {
 
     try {
       const restoredRegisters = await api.resetDemo();
-      const nextOperations = await api.getOperations();
+      const [nextOperations, nextLedgerState] = await Promise.all([
+        api.getOperations(),
+        fetchLedgerVerification()
+      ]);
       setRegisters(restoredRegisters);
       setOperations(toSortedOperations(nextOperations));
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState(nextLedgerState);
+      }
       setFeedbackMessage("Demo state reset to the seeded register balances.");
+      setTamperReceipt(null);
+    } catch (error) {
+      setErrorMessage(messageFromError(error));
+
+      if (ledgerRequestVersion.current === currentLedgerRequest) {
+        setLedgerState({ kind: "unavailable" });
+      }
+    } finally {
+      globalThis.clearTimeout(coldStartTimer);
+      setSubmitAction(null);
+    }
+  }
+
+  async function handleVerifyLedger() {
+    const currentLedgerRequest = ledgerRequestVersion.current + 1;
+    ledgerRequestVersion.current = currentLedgerRequest;
+    setLedgerState({ kind: "pending" });
+
+    const nextLedgerState = await fetchLedgerVerification();
+
+    if (ledgerRequestVersion.current === currentLedgerRequest) {
+      setLedgerState(nextLedgerState);
+    }
+  }
+
+  async function handleTamperLedger(mode: TamperLedgerMode, sequenceNumber?: number) {
+    setErrorMessage(null);
+    setFeedbackMessage(null);
+    setSubmitAction("tamper");
+
+    try {
+      const receipt = await api.simulateLedgerTamper({ mode, sequenceNumber });
+      setTamperReceipt(receipt);
+      await refreshAfterMutation(
+        `Corrupted ${receipt.field} at ledger sequence #${receipt.sequenceNumber}.`
+      );
     } catch (error) {
       setErrorMessage(messageFromError(error));
     } finally {
-      globalThis.clearTimeout(coldStartTimer);
       setSubmitAction(null);
     }
   }
@@ -196,11 +317,11 @@ export default function App() {
         apiBaseUrl={api.baseUrl}
         isRenderBackend={isRenderBackend}
         isEphemeralDemo={isEphemeralDemo}
-        canResetDemo={canResetDemo}
         isRefreshing={isRefreshing}
         isResetting={submitAction === "reset"}
         isInitialLoading={isInitialLoading}
         isBusy={submitAction !== null}
+        ledgerState={ledgerState}
         onRefresh={() => {
           setFeedbackMessage(null);
           void loadDemoData();
@@ -226,6 +347,23 @@ export default function App() {
             />
             <div className="mt-4">
               <OperationsHistory operations={operations} isLoading={isInitialLoading} />
+            </div>
+            <div className="mt-4">
+              <AuditTrail
+                ledgerState={ledgerState}
+                operations={operations}
+                tamperSimulationAvailable={canSimulateLedgerTamper}
+                ephemeralStorage={runtimeCapabilities?.ephemeralStorage ?? null}
+                isTampering={submitAction === "tamper"}
+                isResetting={submitAction === "reset"}
+                isBusy={submitAction !== null || isRefreshing}
+                tamperReceipt={tamperReceipt}
+                onVerify={() => void handleVerifyLedger()}
+                onTamper={(mode, sequenceNumber) =>
+                  void handleTamperLedger(mode, sequenceNumber)
+                }
+                onReset={() => void handleReset()}
+              />
             </div>
           </div>
 

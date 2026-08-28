@@ -8,7 +8,7 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 
-@Table("REGISTER")
+@Table("REGISTERS")
 @Getter
 @Setter
 public class Register {

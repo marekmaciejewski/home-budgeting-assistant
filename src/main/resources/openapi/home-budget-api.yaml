@@ -8,8 +8,87 @@ servers:
 tags:
   - name: registers
   - name: operations
+  - name: ledger
+  - name: showcase
+  - name: runtime
   - name: demo
 paths:
+  /capabilities:
+    get:
+      tags:
+        - runtime
+      operationId: getRuntimeCapabilities
+      summary: Get runtime capabilities exposed by this deployment.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeCapabilitiesResponse"
+              example:
+                ephemeralStorage: true
+                ledgerTamperSimulationAvailable: true
+  /ledger/verify:
+    get:
+      tags:
+        - ledger
+      operationId: verifyLedger
+      summary: Verify the full auditable ledger.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LedgerVerificationResponse"
+              example:
+                status: INVALID
+                operationCount: 4
+                verifiedThroughSequence: 2
+                latestSequenceNumber: 4
+                ledgerHeadHash: 1ac8889d615726c7ecd19bdb9bf178e0b0eb96164d182f133871d5e5956ea793
+                checkedAt: "2026-07-22T12:00:00Z"
+                mismatch:
+                  sequenceNumber: 3
+                  operationId: 3
+                  reason: Stored payload hash does not match the recalculated payload hash.
+  /ledger/tamper-simulations:
+    post:
+      tags:
+        - showcase
+      operationId: simulateLedgerTamper
+      summary: Deliberately corrupt one bounded ledger field.
+      description: A showcase fault-injection operation. Persistent deployments do not provide automatic recovery.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TamperLedgerCommand"
+      responses:
+        "200":
+          description: Ledger corruption simulated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TamperLedgerResponse"
+              example:
+                operationId: 3
+                sequenceNumber: 3
+                mode: PAYLOAD_HASH
+                field: PAYLOAD_HASH
+                previousValue: 296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+                newValue: 096ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+                verificationPath: /ledger/verify
+                resetPath: /demo/reset
+                message: Ledger mismatch simulated. Copy the change details before resetting or repairing the data.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /registers:
     get:
       tags:
@@ -73,11 +152,17 @@ paths:
                 - id: 1
                   timestamp: "2026-06-01T10:15:30Z"
                   amount: 2500.00
+                  operationType: RECHARGE
+                  sequenceNumber: 1
+                  operationHash: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
                   sourceRegisterId: null
                   targetRegisterId: Wallet
                 - id: 2
                   timestamp: "2026-06-01T10:15:30Z"
                   amount: 1500.00
+                  operationType: TRANSFER
+                  sequenceNumber: 2
+                  operationHash: e324da21bb55dc8730068ce1f132a61fb26b3d06afae0a7165aa09dbb6b7cb1e
                   sourceRegisterId: Wallet
                   targetRegisterId: Food expenses
   /operations/recharges:
@@ -109,6 +194,9 @@ paths:
                 id: 1
                 timestamp: "2026-06-01T10:15:30Z"
                 amount: 2500.00
+                operationType: RECHARGE
+                sequenceNumber: 1
+                operationHash: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
                 sourceRegisterId: null
                 targetRegisterId: Wallet
         "400":
@@ -144,6 +232,9 @@ paths:
                 id: 2
                 timestamp: "2026-06-01T10:15:30Z"
                 amount: 1500.00
+                operationType: TRANSFER
+                sequenceNumber: 2
+                operationHash: e324da21bb55dc8730068ce1f132a61fb26b3d06afae0a7165aa09dbb6b7cb1e
                 sourceRegisterId: Wallet
                 targetRegisterId: Food expenses
         "400":
@@ -176,8 +267,55 @@ paths:
                 id: 2
                 timestamp: "2026-06-01T10:15:30Z"
                 amount: 1500.00
+                operationType: TRANSFER
+                sequenceNumber: 2
+                operationHash: e324da21bb55dc8730068ce1f132a61fb26b3d06afae0a7165aa09dbb6b7cb1e
                 sourceRegisterId: Wallet
                 targetRegisterId: Food expenses
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /operations/{operationId}/proof:
+    get:
+      tags:
+        - ledger
+      operationId: getOperationProof
+      summary: Get auditable ledger proof details for one operation.
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          description: The operation identifier.
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationProofResponse"
+              example:
+                operationId: 1
+                operationType: RECHARGE
+                timestamp: "2026-06-01T10:15:30Z"
+                amount: 2500.00
+                sourceRegisterId: null
+                targetRegisterId: Wallet
+                sequenceNumber: 1
+                previousHash: "0000000000000000000000000000000000000000000000000000000000000000"
+                payloadHash: 296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+                operationHash: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
+                canonicalPayload: "ledgerVersion=1\noperationType=RECHARGE\ntimestamp=2026-06-01T10:15:30Z\namount=2500.00\nsourceRegisterId=null\ntargetRegisterId=Wallet"
+                canonicalOperationHashInput: "chainVersion=home-budget-ledger-v1\nsequenceNumber=1\npreviousHash=0000000000000000000000000000000000000000000000000000000000000000\npayloadHash=296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04"
+                expectedPreviousHash: "0000000000000000000000000000000000000000000000000000000000000000"
+                expectedPayloadHash: 296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+                expectedOperationHash: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
+                previousHashValid: true
+                payloadHashValid: true
+                operationHashValid: true
+                valid: true
         "404":
           $ref: "#/components/responses/NotFound"
   /demo/reset:
@@ -186,7 +324,7 @@ paths:
         - demo
       operationId: resetDemo
       summary: Reset the public demo state.
-      description: Available only when the backend runs with the demo profile. Clears operation history and restores the seed active registers for the public demo.
+      description: Available only when the configured R2DBC URL identifies in-memory H2 storage. Clears operation history and restores the seed active registers for the public demo.
       responses:
         "200":
           description: Demo state reset.
@@ -268,6 +406,17 @@ components:
                 status: 404
                 detail: 999 operation not found
                 instance: /operations/999
+    Conflict:
+      description: Request conflicts with the current ledger state.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          example:
+            title: Conflict
+            status: 409
+            detail: Ledger is already invalid. Repair or reset it before simulating another mismatch.
+            instance: /ledger/tamper-simulations
   schemas:
     ProblemDetail:
       description: Problem detail response.
@@ -325,6 +474,286 @@ components:
       required:
         - id
         - balance
+    OperationType:
+      description: Balance-changing operation type.
+      type: string
+      enum:
+        - RECHARGE
+        - TRANSFER
+      example: TRANSFER
+    LedgerStatus:
+      description: Auditable ledger verification status.
+      type: string
+      enum:
+        - VERIFIED
+        - INVALID
+      example: VERIFIED
+    RuntimeCapabilitiesResponse:
+      description: Runtime features and storage behavior advertised to API clients.
+      type: object
+      properties:
+        ephemeralStorage:
+          type: boolean
+          description: Whether the configured R2DBC URL identifies in-memory H2 storage.
+        ledgerTamperSimulationAvailable:
+          type: boolean
+          description: Whether the bounded ledger corruption endpoint is enabled.
+      required:
+        - ephemeralStorage
+        - ledgerTamperSimulationAvailable
+    TamperLedgerMode:
+      description: Fixed ledger field corruption to apply.
+      type: string
+      enum:
+        - AMOUNT
+        - PREVIOUS_HASH
+        - PAYLOAD_HASH
+        - OPERATION_HASH
+      default: PAYLOAD_HASH
+      example: PAYLOAD_HASH
+    TamperLedgerCommand:
+      description: Selects one fixed corruption mode and, optionally, one ledger sequence.
+      type: object
+      properties:
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Target ledger sequence. When omitted, the latest ledger entry is selected.
+          example: 3
+        mode:
+          description: Corruption mode. Omission defaults to PAYLOAD_HASH; explicit null is rejected.
+          default: PAYLOAD_HASH
+          allOf:
+            - $ref: "#/components/schemas/TamperLedgerMode"
+          x-field-extra-annotation: "@com.fasterxml.jackson.annotation.JsonSetter(nulls = com.fasterxml.jackson.annotation.Nulls.FAIL)"
+    TamperLedgerResponse:
+      description: Tamper receipt containing the exact bounded change and a path for subsequent verification.
+      type: object
+      properties:
+        operationId:
+          type: integer
+          format: int64
+          description: Identifier of the changed operation.
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Ledger sequence of the changed operation.
+        mode:
+          $ref: "#/components/schemas/TamperLedgerMode"
+        field:
+          type: string
+          description: Exact OPERATIONS column that was changed.
+          example: PAYLOAD_HASH
+        previousValue:
+          type: string
+          description: Exact value before corruption, suitable for manual repair.
+        newValue:
+          type: string
+          description: Exact value stored by the simulation.
+        verificationPath:
+          type: string
+          example: /ledger/verify
+        resetPath:
+          type: string
+          nullable: true
+          description: Demo reset path when available, otherwise null.
+          example: /demo/reset
+        message:
+          type: string
+          description: Short guidance for inspecting or recovering from the simulated corruption.
+      required:
+        - operationId
+        - sequenceNumber
+        - mode
+        - field
+        - previousValue
+        - newValue
+        - verificationPath
+        - message
+    LedgerMismatch:
+      description: First ledger verification mismatch.
+      type: object
+      properties:
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: The first sequence number where verification failed.
+          example: 3
+        operationId:
+          type: integer
+          format: int64
+          nullable: true
+          description: The operation identifier at the mismatch, if a row exists for the failed sequence.
+          example: 3
+        reason:
+          type: string
+          description: Human-readable verification failure reason.
+          example: Stored payload hash does not match the recalculated payload hash.
+      required:
+        - sequenceNumber
+        - reason
+    LedgerVerificationResponse:
+      description: Full auditable ledger verification diagnostics.
+      type: object
+      properties:
+        status:
+          $ref: "#/components/schemas/LedgerStatus"
+        operationCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Total number of operations in the ledger.
+          example: 4
+        verifiedThroughSequence:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Highest contiguous sequence verified before failure, or the latest sequence when verified.
+          example: 2
+        latestSequenceNumber:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Latest stored sequence number, or zero when the ledger is empty.
+          example: 4
+        ledgerHeadHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: Latest stored operation hash, or the genesis hash when the ledger is empty.
+          example: 1ac8889d615726c7ecd19bdb9bf178e0b0eb96164d182f133871d5e5956ea793
+        checkedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the ledger was checked.
+          example: "2026-07-22T12:00:00Z"
+        mismatch:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/LedgerMismatch"
+      required:
+        - status
+        - operationCount
+        - verifiedThroughSequence
+        - latestSequenceNumber
+        - ledgerHeadHash
+        - checkedAt
+        - mismatch
+    OperationProofResponse:
+      description: Auditable ledger proof details for one operation.
+      type: object
+      properties:
+        operationId:
+          type: integer
+          format: int64
+          description: The operation identifier.
+          example: 1
+        operationType:
+          $ref: "#/components/schemas/OperationType"
+        timestamp:
+          type: string
+          format: date-time
+          description: The operation timestamp.
+          example: "2026-06-01T10:15:30Z"
+        amount:
+          type: number
+          minimum: 0
+          multipleOf: 0.01
+          description: The operation amount as a decimal amount with at most 17 integer digits and two fractional digits.
+          example: 2500.00
+        sourceRegisterId:
+          type: string
+          nullable: true
+          description: The source register identifier.
+          example: Wallet
+        targetRegisterId:
+          type: string
+          nullable: true
+          description: The target register identifier.
+          example: Wallet
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: The operation's monotonic auditable ledger position.
+          example: 1
+        previousHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The stored previous operation hash.
+          example: "0000000000000000000000000000000000000000000000000000000000000000"
+        payloadHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The stored canonical payload hash.
+          example: 296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+        operationHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The stored operation hash.
+          example: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
+        canonicalPayload:
+          type: string
+          description: Canonical operation payload used for payload hash calculation.
+        canonicalOperationHashInput:
+          type: string
+          nullable: true
+          description: Canonical chain input used for operation hash calculation, or null when the previous operation is missing.
+        expectedPreviousHash:
+          type: string
+          nullable: true
+          pattern: "^[0-9a-f]{64}$"
+          description: Expected previous hash for this sequence, or null when the previous operation is missing.
+          example: "0000000000000000000000000000000000000000000000000000000000000000"
+        expectedPayloadHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: Recalculated payload hash.
+          example: 296ec6d6025acbdc12da09bf833e445d2e4028c461d11b85cc3dc341c77dbc04
+        expectedOperationHash:
+          type: string
+          nullable: true
+          pattern: "^[0-9a-f]{64}$"
+          description: Recalculated operation hash, or null when the previous operation is missing.
+          example: bd17cfa30eb03af0e742822e57be0fab4fba8c2e6082d557ebd40c855177474c
+        previousHashValid:
+          type: boolean
+          description: Whether the stored previous hash matches the expected previous hash.
+          example: true
+        payloadHashValid:
+          type: boolean
+          description: Whether the stored payload hash matches the recalculated payload hash.
+          example: true
+        operationHashValid:
+          type: boolean
+          description: Whether the stored operation hash matches the recalculated operation hash.
+          example: true
+        valid:
+          type: boolean
+          description: Whether all proof checks are valid.
+          example: true
+      required:
+        - operationId
+        - operationType
+        - timestamp
+        - amount
+        - sourceRegisterId
+        - targetRegisterId
+        - sequenceNumber
+        - previousHash
+        - payloadHash
+        - operationHash
+        - canonicalPayload
+        - canonicalOperationHashInput
+        - expectedPreviousHash
+        - expectedPayloadHash
+        - expectedOperationHash
+        - previousHashValid
+        - payloadHashValid
+        - operationHashValid
+        - valid
     OperationResponse:
       description: Balance operation
       type: object
@@ -345,6 +774,19 @@ components:
           multipleOf: 0.01
           description: The operation amount as a decimal amount with at most 17 integer digits and two fractional digits.
           example: 1500.00
+        operationType:
+          $ref: "#/components/schemas/OperationType"
+        sequenceNumber:
+          type: integer
+          format: int64
+          minimum: 1
+          description: The operation's monotonic auditable ledger position.
+          example: 42
+        operationHash:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+          description: The lowercase SHA-256 hash linking this operation into the auditable ledger.
+          example: a91f0dfd3db44f3bc7bd2cc85a99ed92fdcf18348f3e98d187ca41971f48d02f
         sourceRegisterId:
           type: string
           nullable: true
@@ -359,6 +801,9 @@ components:
         - id
         - timestamp
         - amount
+        - operationType
+        - sequenceNumber
+        - operationHash
     RechargeCommand:
       description: Recharge command
       type: object

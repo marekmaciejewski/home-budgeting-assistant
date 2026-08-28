@@ -2,6 +2,7 @@ package pl.mm.homebudget.config;
 
 import lombok.RequiredArgsConstructor;
 import pl.mm.homebudget.api.dto.OperationResponse;
+import pl.mm.homebudget.api.dto.OperationType;
 import pl.mm.homebudget.api.dto.RegisterResponse;
 import pl.mm.homebudget.persistence.entity.Operation;
 import pl.mm.homebudget.persistence.entity.Register;
@@ -13,6 +14,7 @@ import org.springframework.context.annotation.Scope;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Configuration
 @RequiredArgsConstructor
@@ -22,10 +24,14 @@ public class ModelConfiguration {
 
     @Bean
     @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public Operation operation(BigDecimal amount) {
+    public Operation operation(
+            BigDecimal amount, OperationType operationType, String sourceRegisterId, String targetRegisterId) {
         Operation operation = new Operation();
-        operation.setTimestamp(Instant.now(clock));
+        operation.setTimestamp(Instant.now(clock).truncatedTo(ChronoUnit.MICROS));
         operation.setAmount(amount);
+        operation.setOperationType(operationType);
+        operation.setSourceRegisterId(sourceRegisterId);
+        operation.setTargetRegisterId(targetRegisterId);
         return operation;
     }
 
@@ -41,7 +47,10 @@ public class ModelConfiguration {
         return new OperationResponse(
                 operation.getId(),
                 operation.getTimestamp().atZone(clock.getZone()).toOffsetDateTime(),
-                operation.getAmount())
+                operation.getAmount(),
+                operation.getOperationType(),
+                operation.getSequenceNumber(),
+                operation.getOperationHash())
                 .sourceRegisterId(operation.getSourceRegisterId())
                 .targetRegisterId(operation.getTargetRegisterId());
     }

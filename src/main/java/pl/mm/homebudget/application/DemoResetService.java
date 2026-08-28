@@ -1,11 +1,12 @@
 package pl.mm.homebudget.application;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.mm.homebudget.api.dto.RegisterResponse;
+import pl.mm.homebudget.config.EphemeralStorageCondition;
 import pl.mm.homebudget.persistence.OperationRepository;
 import pl.mm.homebudget.persistence.RegisterConverter;
 import pl.mm.homebudget.persistence.RegisterRepository;
@@ -15,7 +16,7 @@ import reactor.core.publisher.Flux;
 import java.math.BigDecimal;
 
 @Service
-@Profile("demo")
+@Conditional(EphemeralStorageCondition.class)
 @RequiredArgsConstructor
 public class DemoResetService {
 

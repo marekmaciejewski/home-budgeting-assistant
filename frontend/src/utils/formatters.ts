@@ -16,3 +16,7 @@ export function formatTimestamp(value: string): string {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : timeFormatter.format(date);
 }
+
+export function formatShortHash(value: string): string {
+  return value.length <= 17 ? value : `${value.slice(0, 8)}...${value.slice(-8)}`;
+}

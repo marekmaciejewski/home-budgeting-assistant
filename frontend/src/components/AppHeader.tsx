@@ -1,14 +1,16 @@
 import type { MouseEventHandler } from "react";
+import type { LedgerVerificationState } from "../types/ui";
+import { formatShortHash } from "../utils/formatters";
 
 export type AppHeaderProps = {
   apiBaseUrl: string;
   isRenderBackend: boolean;
   isEphemeralDemo: boolean;
-  canResetDemo: boolean;
   isRefreshing: boolean;
   isResetting: boolean;
   isInitialLoading: boolean;
   isBusy: boolean;
+  ledgerState: LedgerVerificationState;
   onRefresh: MouseEventHandler<HTMLButtonElement>;
   onReset: MouseEventHandler<HTMLButtonElement>;
 };
@@ -17,20 +19,21 @@ export function AppHeader({
   apiBaseUrl,
   isRenderBackend,
   isEphemeralDemo,
-  canResetDemo,
   isRefreshing,
   isResetting,
   isInitialLoading,
   isBusy,
+  ledgerState,
   onRefresh,
   onReset
 }: Readonly<AppHeaderProps>) {
   const backendLabel = isRenderBackend ? "Render demo backend" : "Local backend";
-  const storageLabel = isEphemeralDemo ? "Ephemeral" : "Persistent";
-  const storageBadgeClass = isEphemeralDemo ? "text-bg-warning" : "text-bg-success";
+  const storageLabel = isEphemeralDemo ? "Ephemeral" : "Local config";
+  const storageBadgeClass = isEphemeralDemo ? "text-bg-warning" : "text-bg-secondary";
   const backendDescription = isEphemeralDemo
     ? "Hosted demo state is resettable and may restart after Render idle time."
-    : "Local mode is treated as file-backed storage; reset is unavailable here.";
+    : "Storage lifetime follows the active local backend configuration; reset is unavailable from this UI.";
+  const ledgerStatus = getLedgerStatus(ledgerState);
 
   return (
     <header className="bg-white border-bottom">
@@ -73,6 +76,20 @@ export function AppHeader({
                 </div>
                 <p className="text-secondary small mb-2">{backendDescription}</p>
 
+                <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
+                  <div className="text-secondary small text-uppercase fw-semibold">Audit status</div>
+                  <a
+                    className={`ledger-status-link badge rounded-pill text-decoration-none ${ledgerStatus.className}`}
+                    href="#audit-trail"
+                    title={ledgerStatus.title}
+                  >
+                    {ledgerState.kind === "pending" && (
+                      <span className="spinner-border ledger-status-spinner" aria-hidden="true" />
+                    )}
+                    {ledgerStatus.label}
+                  </a>
+                </div>
+
                 <div className="d-flex flex-wrap gap-2">
                   <button
                     className="btn btn-primary api-action"
@@ -82,7 +99,7 @@ export function AppHeader({
                   >
                     {isRefreshing ? "Refreshing..." : "Refresh"}
                   </button>
-                  {canResetDemo && (
+                  {isEphemeralDemo && (
                     <button
                       className="btn btn-outline-danger api-action"
                       type="button"
@@ -108,4 +125,37 @@ export function AppHeader({
       </div>
     </header>
   );
+}
+
+function getLedgerStatus(ledgerState: LedgerVerificationState): {
+  label: string;
+  title: string;
+  className: string;
+} {
+  switch (ledgerState.kind) {
+    case "verified":
+      return {
+        label: `Ledger verified - #${ledgerState.data.latestSequenceNumber} - ${formatShortHash(ledgerState.data.ledgerHeadHash)}`,
+        title: `Ledger verified. Full head hash: ${ledgerState.data.ledgerHeadHash}`,
+        className: "bg-success-subtle text-success-emphasis border border-success-subtle"
+      };
+    case "invalid":
+      return {
+        label: `Ledger mismatch detected - #${ledgerState.data.mismatch?.sequenceNumber ?? "?"}`,
+        title: "The operation ledger did not pass full-chain verification.",
+        className: "bg-danger-subtle text-danger-emphasis border border-danger-subtle"
+      };
+    case "unavailable":
+      return {
+        label: "Verification unavailable",
+        title: "The ledger verification endpoint did not return a result.",
+        className: "bg-warning-subtle text-warning-emphasis border border-warning-subtle"
+      };
+    case "pending":
+      return {
+        label: "Verification pending",
+        title: "Ledger verification is in progress.",
+        className: "text-bg-light border"
+      };
+  }
 }

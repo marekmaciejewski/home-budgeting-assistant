@@ -1,8 +1,13 @@
 import type {
+  LedgerVerificationResponse,
+  OperationProofResponse,
   OperationResponse,
   ProblemDetail,
   RechargeCommand,
   RegisterResponse,
+  RuntimeCapabilitiesResponse,
+  TamperLedgerCommand,
+  TamperLedgerResponse,
   TransferCommand
 } from "./apiTypes";
 
@@ -94,11 +99,17 @@ function jsonRequest<T>(path: string, body?: unknown): Promise<T> {
 
 export const api = {
   baseUrl: apiBaseUrl,
+  getRuntimeCapabilities: () => request<RuntimeCapabilitiesResponse>("/capabilities"),
   getRegisters: () => request<RegisterResponse[]>("/registers"),
   getOperations: () => request<OperationResponse[]>("/operations"),
+  verifyLedger: () => request<LedgerVerificationResponse>("/ledger/verify"),
+  getOperationProof: (operationId: number) =>
+    request<OperationProofResponse>(`/operations/${operationId}/proof`),
   createRecharge: (command: RechargeCommand) =>
     jsonRequest<OperationResponse>("/operations/recharges", command),
   createTransfer: (command: TransferCommand) =>
     jsonRequest<OperationResponse>("/operations/transfers", command),
+  simulateLedgerTamper: (command: TamperLedgerCommand) =>
+    jsonRequest<TamperLedgerResponse>("/ledger/tamper-simulations", command),
   resetDemo: () => jsonRequest<RegisterResponse[]>("/demo/reset")
 };

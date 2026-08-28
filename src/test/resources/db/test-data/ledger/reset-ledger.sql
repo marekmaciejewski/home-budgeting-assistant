@@ -1,0 +1,10 @@
+DELETE FROM OPERATIONS;
+
+UPDATE REGISTERS
+SET BALANCE = CASE ID
+    WHEN 'Wallet' THEN 1000.00
+    WHEN 'Savings' THEN 5000.00
+    WHEN 'Insurance policy' THEN 0.00
+    WHEN 'Food expenses' THEN 0.00
+    ELSE BALANCE
+END;
