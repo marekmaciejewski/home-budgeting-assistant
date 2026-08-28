@@ -73,16 +73,35 @@ The details of the input/output model are available through Swagger UI. Locally,
 The checked-in OpenAPI contract lives in `src/main/resources/openapi/home-budget-api.yaml`.
 Maven generates the Spring WebFlux API interfaces and request/response DTOs from that file during the build.
 
-## Planning docs
+## Auditable ledger
 
-- [Auditable ledger master plan](docs/auditable-ledger-master-plan.md)
-- [Auditable ledger Phase 1 plan](docs/auditable-ledger-phase-1-plan.md)
-- [Auditable ledger Phase 2 plan](docs/auditable-ledger-phase-2-plan.md)
-- [Auditable ledger Phase 5b showcase tamper plan](docs/auditable-ledger-phase-5b-demo-tamper-plan.md)
-- [Auditability UI plan](docs/auditability-ui-plan.md)
+The app includes a tamper-evident operation ledger. Recharges and transfers are stored as hash-chained operations using
+deterministic SHA-256 hashes over a versioned canonical payload. This is intentionally not a distributed blockchain:
+there is no mining, token model, peer network, proof-of-work, or consensus layer.
 
-The Codex app's `[Use plan mode]` button is useful for work like the auditable ledger feature: use it before each
-implementation phase to keep the checklist, acceptance criteria, and tradeoffs visible before code changes begin.
+Useful audit endpoints:
+
+| method | url                               | description                                       |
+|--------|-----------------------------------|---------------------------------------------------|
+| GET    | `/ledger/verify`                  | verify the full chain and return ledger head data |
+| GET    | `/operations/{operationId}/proof` | inspect one operation's proof material            |
+
+The frontend shows the current ledger status in the header, exposes an Audit Trail section, and lets users inspect
+operation proof details from the operation history.
+
+The showcase can also apply one bounded corruption through `POST /ledger/tamper-simulations` when the runtime
+capability is enabled. The endpoint changes exactly one fixed `OPERATIONS` field, returns the previous and new values,
+and lets `/ledger/verify` report the mismatch. Ephemeral demo storage can be restored with `POST /demo/reset`; persistent
+storage requires manual repair and blocks new balance-changing operations while invalid.
+
+Future enhancements that are still useful but independent:
+
+- Add project-wide ledger writer coordination for append, reset, and tamper flows when the app moves beyond the current
+  one-active-user showcase assumption.
+- Replace custom `GET /capabilities` with Spring Boot Actuator `/actuator/info` and a focused `InfoContributor`; avoid
+  exposing broad environment details through browser-facing endpoints.
+- Add browser-side proof verification and proof export using Web Crypto after the current backend-backed audit flow has
+  settled.
 
 Quick smoke test against the hosted backend:
 
